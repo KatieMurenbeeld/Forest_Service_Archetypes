@@ -20,7 +20,7 @@ trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
 
 ## original rasters
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
-for_type <- rast(here::here("data/original/conus_forest-type (1)/conus_foresttype.img"))
+for_type <- rast(here::here("data/original/conus_foresttype.img"))
 
 #---Process the original rasters----
 
@@ -37,31 +37,46 @@ softwood <- c("White - Red - Jack Pine Group", "Spruce - Fir Group", "Longleaf -
               "Hemlock - Sitka Spruce Group", "Western Larch Group", "Redwood Group", 
               "Other Western Softwoods Group", "California Mixed Conifer Group")
 
+identical(crs(ref_rast), crs(tree_age))
+identical(crs(ref_rast), crs(for_type))
 
-# Check alignment 
-rast_stack <- c(arch_attri, mill_dist, biodiver_crop, geophys_crop)
+resamp <- function(raster, ref_raster, method){
+  rast_proj <- project(raster, crs(ref_raster))
+  rast_resamp <- resample(rast_proj, ref_raster, method)
+}
+
+tree_age_resamp <- resamp(tree_age, ref_rast, "bilinear")
+for_type_resamp <- resamp(for_type, ref_rast, "bilinear")
+mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
+
+# Check alignment and stack the rasters
+rast_stack <- c(arch_attri, ref_rast, mill_change_resamp, prec_seas, temp_seas, 
+                roughness, trav_time, tree_age_resamp)
 
 #---Process raster for use with geocmeans----
 
-# Update the names if you want 
+# Update the names (optional) 
 names(rast_stack)
 
 # Select Variables for FCmeans
-rst_fcm <- rast_stack[[c("R_NET_M", "pct_pay", "sghts_p", "gov_p",
-                         "ave_dem", "lsscll_", "WHP", "CL_ELEV", 
-                         "distance_to_wilderness_m", "last")]]
-names(rst_fcm) <- c("net_mig", "pct_for_pay", "pct_sight_pay", "pct_gov_p", 
-                    "ave_dem", "less_coll", "WHP", "geophysical", 
-                    "distance_to_wilderness_m", "distance_to_mill_m")
-writeRaster(rst_fcm, paste0("data/processed/rast_fcm_08_", Sys.Date(), ".tif"), overwrite = TRUE)
+#rst_fcm <- rast_stack[[c("R_NET_M", "pct_pay", "sghts_p", "gov_p",
+#                         "ave_dem", "lsscll_", "WHP", "CL_ELEV", 
+#                         "distance_to_wilderness_m", "last")]]
+rst_fcm <- rast_stack
+names(rst_fcm) <- c("pct_for_pay", "pct_forest", "forest_depend", "net_mig", 
+                    "less_hs", "house_burd", "ener_burd", "pm25", 
+                    "pct_sightsee_pay", "pct_gov_pay", "fed_area", "fed_evenness",
+                    "wildfire_haz", "mill_cap_5yr_chng", "precip_seas", "temp_seas",
+                    "roughness", "travel_time_to_cities", "tree_age")
+writeRaster(rst_fcm, paste0("data/processed/rast_fcm_", Sys.Date(), ".tif"), overwrite = TRUE)
 
 # Scale the data
 rst_fcm_sc <- scale(rst_fcm)
 
 # Quickly investigate the correlation between the attributes
 correlation <- layerCor(rst_fcm, "pearson", na.rm = TRUE)
-fcm_08_cor <- as.data.frame(correlation$correlation)
-#write_csv(fcm_08_cor, here::here("data/processed/fcm_07_cor.csv"))
+fcm_cor <- as.data.frame(correlation$correlation)
+#write_csv(fcm_cor, here::here("outputs/fcm_correlation.csv"), append = FALSE)
 
 # Convert to a simple list of SpatRaster
 dataset <- lapply(names(rst_fcm_sc), function(n){
@@ -87,7 +102,7 @@ sil.idx <- ggplot(FCMvalues) +
   coord_fixed(ratio=0.125) +
   scale_fill_viridis()
 sil.idx
-ggsave(here::here("figures/FCM_08_sil_idx_02.png"), sil.idx, 
+ggsave(here::here("figures/FCM_sil_idx.png"), sil.idx, 
        width = 12, height = 12, dpi = 300)
 
 # plotting the explained inertia
@@ -97,13 +112,13 @@ ex.inert <- ggplot(FCMvalues) +
   scale_fill_viridis() +
   coord_fixed(ratio=0.125)
 ex.inert
-ggsave(here::here("figures/FCM_08_ex_inert_02.png"), ex.inert, 
+ggsave(here::here("figures/FCM_ex_inert.png"), ex.inert, 
        width = 12, height = 12, dpi = 300)
 
 #---Run the FCM---- 
 FCM_result <- CMeans(dataset, k = 5, m = 1.1, standardize = FALSE)
 map.res <- rast(FCM_result$rasters)
-writeRaster(map.res[["Groups"]], filename = paste0("data/processed/FCM_08_", Sys.Date(), ".tif"))
+writeRaster(map.res[["Groups"]], filename = paste0("data/processed/FCM_", Sys.Date(), ".tif"))
 
 
 ##---save the iteration, k, m as a dataframe----
