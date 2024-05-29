@@ -14,36 +14,10 @@ ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 arch_attri <- rast(here::here("data/processed/arch_attri_05_2024-04-03.tif"))
 mill_dist <- rast(here::here("data/processed/mill_dist_open.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
-agc_flux <- rast("~/Analysis/NEPA_Efficiency/data/original/forest_aboveground_carbon_flux_ED_GEDI_ICESat2.tif")
-agc_stock <- rast("~/Analysis/NEPA_Efficiency/data/original/forest_aboveground_carbon_stock_ED_GEDI.tif")
-biodiver <- rast(here::here("data/original/distribute_RecognizedBiodiversityValue_2020_7_2020/RecognizedBiodiversityValue_USERC_2020_7_2.tif"))
-geophys <- rast(here::here("data/original/Settings/Settings_2020_3_31_USAwwat.tif"))
-spei <- rast(here::here("data/original/GRIDMET-speih-12mo.tif"))
-elevation <- rast(here::here("data/original/_ags_b3860be0_3b01_41fb_ba0d_06d68b293983.tif"))
-land_cover <- rast(here::here("data/original/nlcd_2021_land_cover_l48_20230630.img"))
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
 for_type <- rast(here::here("data/original/conus_forest-type (1)/conus_foresttype.img"))
 
-# ignore for now, file corrupted?
-#gpp_rast <- rast(here::here("data/original/CarbonFlux_2000_2013/Average_GPP_2000_2013.img"))
-
 #---Process the original rasters----
-# Aggregate, resample or reproject, and crop
-#agc_stock_proj <- project(agc_stock, 
-#                          y = "+proj=aea +lat_0=23 +lon_0=-96 +lat_1=29.5 +lat_2=45.5 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs")
-#agc_stock_crop <- crop(agc_stock_proj, ref_rast, mask = TRUE)
-
-biodiver_agg <- aggregate(biodiver, 100, fun = mean)
-biodiver_resamp <- resample(biodiver_agg, ref_rast)
-biodiver_crop <- crop(biodiver_resamp, ref_rast, mask = TRUE)
-
-geophys_agg <- aggregate(geophys, 100, fun = mean)
-geophys_resamp <- project(geophys_agg, ref_rast)
-geophys_crop <- crop(geophys_resamp, ref_rast, mask = TRUE)
-
-ele_proj <- project(elevation, ref_rast)
-ele_resamp <- resample(ele_proj, ref_rast)
-ele_crop <- crop(ele_resamp, ref_rast, mask = TRUE)
 
 ## For forest type group into either hardwood or softwood
 hardwood <- c("Oak - Pine Group", "Oak - Hickory Group", "Oak - Gum - Cypress Group", 
