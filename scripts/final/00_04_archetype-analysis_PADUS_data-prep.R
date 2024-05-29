@@ -127,22 +127,10 @@ counties_shannon <- counties_prop %>%
   group_by(., GEOID) %>% 
   summarise(., numfed = n(), 
             H = sum(step1),
-            fedarea = fed_inter_sum,
-            footprint = county_area,
+            fedarea = sum(unique(fed_inter_sum)),
             E = H/log((fedarea)))
-counties_shannon$E <- ifelse(drop_units(counties_shannon$fedarea) == 0, 1, counties_shannon$E)
 
-shannon_diversity <- counties_prop %>%
-  group_by(., GEOID) %>%
-  summarise(H = sum(step1))
-
-shannon <- counties_prop %>%
-  drop_na(Mang_Name) %>%
-  group_by(., GEOID) %>%
-  summarise(., numfed = n(), 
-            H = sum(step1)) %>%
-  dplyr::select(GEOID, numfed, H) %>%
-  st_drop_geometry()
-
-counties_shannon <- left_join(counties, shannon)
+## save as a shapefile
+#write_sf(obj = counties_shannon, dsn = paste0(here::here("data/processed/"), "county_fed_shannon_div_even_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+print("new shapefile written")
 
