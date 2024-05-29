@@ -9,3 +9,14 @@ source(here::here("scripts/toy/00_00_toy-archetype_download-data.R"))
 #source(here::here("scripts/toy/00_03_toy-archetype_geodata-data-prep.R"))
 source(here::here("scripts/toy/01_toy-archetype_csv-to-shp.R"))
 source(here::here("scripts/toy/02_toy-archetype_shp-to-rst.R"))
+source(here::here("scripts/toy/03_toy-archetype_rst-to-fcm-rst.R"))
+source(here::here("scripts/toy/04_toy-archetype_fcm_parameters.R"))
+source(here::here("scripts/toy/05_toy-archetype_fcm-analysis.R"))
+source(here::here("scripts/toy/06_toy-archetype_fcm-maps.R"))
+
+# print session information
+sI <- sessionInfo()
+sI
+
+print(sI, RNG = TRUE, locale = FALSE)
+toLatex(sI, locale = FALSE) 
