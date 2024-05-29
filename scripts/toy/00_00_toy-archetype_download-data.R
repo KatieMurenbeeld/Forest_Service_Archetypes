@@ -91,10 +91,10 @@ unzip(paste0(here::here("data/toy/original/"), file_name),  exdir = here::here("
 
 # Climate and Economic Justice Screening Tool
 url <- "https://static-data-screeningtool.geoplatform.gov/data-versions/1.0/data/score/downloadable/1.0-shapefile-codebook.zip"
-file_name <- ""
+file_name <- "usa.zip"
 
 download_data(url, file_name)
-
+unzip(paste0(here::here("data/toy/original/"), file_name),  exdir = here::here("data/toy/original/"))
 #---4. Download tif data----
 ## These are too large for toy example?
 
