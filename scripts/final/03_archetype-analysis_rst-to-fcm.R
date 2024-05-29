@@ -53,6 +53,9 @@ mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
 rast_stack <- c(arch_attri, ref_rast, mill_change_resamp, prec_seas, temp_seas, 
                 roughness, trav_time, tree_age_resamp)
 
+## Save the raster
+writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "full_rast_stack_attributes_", Sys.Date(), ".tif"), overwrite = TRUE)
+
 #---Process raster for use with geocmeans----
 
 # Update the names (optional) 
