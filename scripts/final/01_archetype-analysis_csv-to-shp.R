@@ -120,6 +120,6 @@ any(is.na(st_is_valid(var_bdry_noempty)))
 #any(na.omit(st_is_valid(var_bdry_noempty)) == FALSE)
 st_is_longlat(var_bdry_noempty)
 
-## Write the validated and factorized shp to a new shp
+## Save the validated shapefile
 write_sf(obj = var_bdry, dsn = paste0(here::here("data/processed/"), "all_vars_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
