@@ -35,6 +35,7 @@ st_list <- states %>%
   filter(GEOID != 2 & GEOID != 11 & GEOID != 15 & GEOID < 60) %>%
   select(NAME)
 
+# may need to complete in chunks by indexing st_list
 for (state in st_list[31:48,]) {
   download_fire(state)
 }
