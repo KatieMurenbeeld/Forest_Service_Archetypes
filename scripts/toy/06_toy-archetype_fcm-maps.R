@@ -54,4 +54,4 @@ fcm_reg_map <- ggplot() +
   theme(legend.position = "bottom")
 
 fcm_reg_map
-ggsave(here::here("figures/toy/fcm_ref_map.png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+ggsave(here::here("figures/toy/fcm_region_map.png"), plot = fcm_reg_map, width = 12, height = 12, dpi = 300)  
