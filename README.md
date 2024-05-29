@@ -16,5 +16,5 @@ Please:
    *  temp_seas_3000m.tif
    *  roughness_3000m.tif
    *  trav_time_3000m.tif 
-3. Today in lab meeting, run through the entire analysis by running through the toy-archetype_run-analysis.R script. This is sourced to all of the other scripts in scripts/toy/
-4. TBD 
+3. Today in lab meeting, run through the entire analysis by running through the scripts/toy/toy-archetype_run-analysis.R script. This is sourced to all of the other scripts in scripts/toy/ and the processed data you double checked above. This script will also overwrite the processed raster stacks and cluster analysis rasters and the final maps.
+4. TBD. Try to run through commented out scripts. They just take a while to download some of the files.
