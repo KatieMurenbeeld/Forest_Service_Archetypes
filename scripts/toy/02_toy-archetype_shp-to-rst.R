@@ -23,11 +23,8 @@ fed_shann <- st_read(here::here("data/toy/processed/county_fed_shannon_div_even_
 
 #---Load reference raster----
 ref_rast <- rast(here::here("data/toy/processed/merged/WHP_merge3000m.tif"))
-crs(ref_rast)
 
 #---Transform the projection of shapefiles----
-st_crs(all_vars)
-
 all_vars_proj <- all_vars %>% st_transform(., crs = crs(ref_rast))
 wild_proj <- wild %>% st_transform(., crs = crs(ref_rast))
 cejst_proj <- cejst %>% st_transform(., crs = crs(ref_rast))
@@ -67,16 +64,13 @@ lesshighsch_rast <- rasterize(vect(cejst_proj), ref_rast, field = "HSEF")
 propburd_rast <- rasterize(vect(cejst_proj), ref_rast, field = "HBF_PFS")
 enerburd_rast <- rasterize(vect(cejst_proj), ref_rast, field = "EBF_PFS") 
 pm25_rast <- rasterize(vect(cejst_proj), ref_rast, field = "PM25F_PFS")
-percent_sitesee_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "sghts_p")
-percent_govpay_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "gov_p")
 percent_fed_area_rast <- rasterize(vect(fed_cov_proj), ref_rast, field = "coverag")
 fed_even_rast <- rasterize(vect(fed_shann_proj), ref_rast, field = "E")
 
 #---Check alignment and extents-----
 rast_stack <- c(percent_forpay_rast, percent_for_rast, fordep_rast, delpop_rast, 
                 lesshighsch_rast, propburd_rast, enerburd_rast, 
-                pm25_rast, percent_sitesee_rast, percent_govpay_rast, 
-                percent_fed_area_rast, fed_even_rast)
+                pm25_rast, percent_fed_area_rast, fed_even_rast)
 
 writeRaster(x = rast_stack, filename = paste0(here::here("data/toy/processed/"), "arch_attri_", Sys.Date(), ".tif"), overwrite = TRUE)
 
