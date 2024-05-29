@@ -18,6 +18,12 @@ crithab <- st_read(here::here("data/original/crithab_poly.shp"))
 # CEJST (Climate and Economic Justice Screening Tool)
 cejst <- st_read(here::here("data/original/usa.shp"))
 
+# county level federal coverage
+fed_cov <- st_read(here::here("data/processed/county_fed_gov_coverage_pct2024-05-28.shp"))
+
+# county level federal shannan diversity and evenness
+fed_shann <- st_read(here::here("data/processed/county_fed_shannon_div_even_2024-05-29.shp"))
+
 #---Load reference raster----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 crs(ref_rast)
@@ -30,6 +36,8 @@ wild_proj <- wild %>% st_transform(., crs = crs(ref_rast))
 crithab_proj <- crithab %>% st_transform(., crs = crs(ref_rast))
 cejst_proj <- cejst %>% st_transform(., crs = crs(ref_rast))
 counties_proj <- counties %>% st_transform(., crs = crs(ref_rast))
+fed_cov_proj <- fed_cov %>% st_transform(., crs = crs(ref_rast))
+fed_shann_proj <- fed_shann %>% st_transform(., crs = crs(ref_rast))
 
 #---Calculate distances from wilderness areas and critical habitat
 ## Create a template raster for the shapefiles
@@ -74,11 +82,14 @@ enerburd_rast <- rasterize(vect(cejst_proj), ref_rast, field = "EBF_PFS")
 pm25_rast <- rasterize(vect(cejst_proj), ref_rast, field = "PM25F_PFS")
 percent_sitesee_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "sghts_p")
 percent_govpay_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "gov_p")
+percent_fed_area_rast <- rasterize(vect(fed_cov_proj), ref_rast, field = "coverag")
+fed_even_rast <- rasterize(vect(fed_shann_proj), ref_rast, field = "E")
 
 #---Check alignment and extents-----
 rast_stack <- c(percent_forpay_rast, percent_for_rast, fordep_rast, delpop_rast, 
                 lesshighsch_rast, propburd_rast, enerburd_rast, 
-                pm25_rast, percent_sitesee_rast, percent_govpay_rast)
+                pm25_rast, percent_sitesee_rast, percent_govpay_rast, 
+                percent_fed_area_rast, fed_even_rast)
 
 writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "arch_attri_", Sys.Date(), ".tif"), overwrite = TRUE)
 
