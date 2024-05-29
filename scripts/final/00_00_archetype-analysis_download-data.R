@@ -6,7 +6,7 @@ library(tigris)
 library(stringr)
 library(RCurl)
 
-# Some files are large so set the timeout to 10 minutes (6000 seconds)
+# Some files are large so set the timeout to 100 minutes (6000 seconds)
 options(timeout=6000)
 
 # There are three file types we will download: csv, shp, and tif/img.
@@ -109,13 +109,6 @@ url <- "https://static-data-screeningtool.geoplatform.gov/data-versions/1.0/data
 file_name <- ""
 
 download_data(url, file_name)
-
-# Forest Dependence 
-url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2021-0077/RDS-2021-0077.zip"
-file_name <- ""
-
-download_data(url, file_name)
-#unzip(paste0(here::here("data/original/"), file_name),  exdir = here::here("data/original/"))
 
 #---Download tif data-----------------------------------------------------------
 ## These may be too large to do through RStudio?
