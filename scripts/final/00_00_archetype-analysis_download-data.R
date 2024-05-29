@@ -145,6 +145,11 @@ download_data(url, file_name)
 # see https://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=1096
 # see data/original/NA_TreeAge_1096/data 
 
+# Regional Economic Accounts
+# From the "Personal income (state and local)" dropdown select 
+# CAINC6NC: compensation of employees by NAICS industry
+# see https://apps.bea.gov/regional/downloadzip.cfm?_gl=1*7muxs7*_ga*MTYzOTk2OTAyNC4xNzExOTg3Njgz*_ga_J4698JNNFT*MTcxMTk4NzY4Mi4xLjEuMTcxMTk4Nzk3OC42MC4wLjA
+
 # Wildfire Risk
 # See scripts/final/00_01_archetype-analysis_download-prep-fire.R
 
