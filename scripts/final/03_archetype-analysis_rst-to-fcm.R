@@ -116,7 +116,7 @@ ggsave(here::here("figures/FCM_ex_inert.png"), ex.inert,
        width = 12, height = 12, dpi = 300)
 
 #---Run the FCM---- 
-FCM_result <- CMeans(dataset, k = 5, m = 1.1, standardize = FALSE)
+FCM_result <- CMeans(dataset, k = 5, m = 1.7, standardize = FALSE)
 map.res <- rast(FCM_result$rasters)
 writeRaster(map.res[["Groups"]], filename = paste0("data/processed/FCM_", Sys.Date(), ".tif"))
 
@@ -127,14 +127,14 @@ aa_iteration <- data.frame(iteration_name = character(),
                            k = numeric(),
                            m = numeric())
 
-iteration_name <- "FCM_08"
+iteration_name <- "FCM_"
 attris <- paste(names(rst_fcm), collapse= ", ")
 k <- 5
-m <- 1.1
+m <- 1.7
 
 aa_iteration[nrow(aa_iteration) + 1,] <- list(iteration_name, attris, k, m)
 
-write_csv(aa_iteration, here::here("data/processed/aa_iteration.csv"), append = TRUE)
+write_csv(aa_iteration, here::here("outputs/aa_iteration.csv"), append = TRUE)
 
 
 
