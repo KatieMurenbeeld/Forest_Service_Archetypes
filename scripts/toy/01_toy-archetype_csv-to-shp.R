@@ -100,4 +100,4 @@ st_is_longlat(var_bdry_noempty)
 
 # 6. Save the validated shapefile
 write_sf(obj = var_bdry, dsn = paste0(here::here("data/toy/processed/"), "all_vars_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-print("new shapefile written")
+print("new shapefile written from csv files")
