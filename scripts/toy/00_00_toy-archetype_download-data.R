@@ -1,3 +1,9 @@
+# Download the original data using this script
+# Some data will need to be downloaded manually, potentially with authentication
+# Some data requires more in-depth processing
+# Some data is proprietary
+
+# 0. Load the libraries and set the timeout
 library(tidyverse)
 library(sf)
 library(terra)
@@ -8,9 +14,15 @@ library(RCurl)
 # Some files are large so set the timeout to 100 minutes (6000 seconds)
 options(timeout=6000)
 
-# There are three file types we will download: csv, shp, and tif/img.
+# Steps:
+# 0. Load libraries, set timeout
+# 1. Function to download and unzip files
+# 2. Download csv files
+# 3. Download shapefiles
+# 4. Download tif/img
+# 5. Comments for more difficult data
 
-# Function to download and unzip files
+#---1. Function to download and unzip files----
 download_data <- function(url, file_name) {
   if (str_detect(url, ".zip")) {
     tmp <- tempfile()
@@ -25,7 +37,7 @@ download_data <- function(url, file_name) {
   }
 }
 
-#---Download csv data-----------------------------------------------------------
+#---2. Download csv data----
 
 # Population data
 url <- "https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=3995.5"
@@ -49,7 +61,7 @@ url <- "https://sc.edu/study/colleges_schools/artsandsciences/centers_and_instit
 
 download.file(url, destfile = here::here("data/toy/original/bric2020_us.xlsx"))
 
-#---Download shp data-----------------------------------------------------------
+#---3. Download shp data----
 
 # USFS National Forest Boundaries
 url <- "https://data.fs.usda.gov/geodata/edw/edw_resources/shp/S_USA.AdministrativeForest.zip"
@@ -83,7 +95,7 @@ file_name <- ""
 
 download_data(url, file_name)
 
-#---Download tif data-----------------------------------------------------------
+#---4. Download tif data----
 ## These are too large for toy example?
 
 # National Land Cover Data 2021
@@ -104,7 +116,7 @@ download_data(url, file_name)
 
 # download_data(url, file_name)
 
-#---Data that needs more in-depth downloading, processing-----------------------
+#---5. Data that needs more in-depth downloading, processing----
 #---is by subscription only or requires an account with AppEARS (EarthData)-----
 
 # NACP 1-km forest age maps
