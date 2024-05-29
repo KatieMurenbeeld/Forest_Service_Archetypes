@@ -11,9 +11,14 @@ library(viridis)
 
 #---Load the data-----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
-arch_attri <- rast(here::here("data/processed/arch_attri_05_2024-04-03.tif"))
-mill_dist <- rast(here::here("data/processed/mill_dist_open.tif"))
+arch_attri <- rast(here::here("data/processed/arch_attri_2024-05-29.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
+prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
+temp_seas <- rast(here::here("data/processed/temp_seas_3000m.tif"))
+roughness <- rast(here::here("data/processed/roughness_3000m.tif"))
+trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
+
+## original rasters
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
 for_type <- rast(here::here("data/original/conus_forest-type (1)/conus_foresttype.img"))
 
