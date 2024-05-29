@@ -10,7 +10,7 @@ library(RColorBrewer)
 library(viridis)
 
 #---Load the data-----
-rst_fcm <- rast(here::here("data/toy/processed/rast_fcm_2024_05_29.tif"))
+rst_fcm <- rast(here::here("data/toy/processed/toy_rast_fcm_2024-05-29.tif"))
 
 # Scale the data
 rst_fcm_sc <- scale(rst_fcm)
@@ -56,25 +56,4 @@ ex.inert <- ggplot(FCMvalues) +
 ex.inert
 ggsave(here::here("figures/toy/FCM_ex_inert.png"), ex.inert, 
        width = 12, height = 12, dpi = 300)
-
-#---Run the FCM---- 
-FCM_result <- CMeans(dataset, k = 5, m = 1.7, standardize = FALSE)
-map.res <- rast(FCM_result$rasters)
-writeRaster(map.res[["Groups"]], filename = paste0("data/toy/processed/FCM_", Sys.Date(), ".tif"))
-
-
-##---save the iteration, k, m as a dataframe----
-aa_iteration <- data.frame(iteration_name = character(),
-                           attris = character(),
-                           k = numeric(),
-                           m = numeric())
-
-iteration_name <- "FCM_"
-attris <- paste(names(rst_fcm), collapse= ", ")
-k <- 5
-m <- 1.7
-
-aa_iteration[nrow(aa_iteration) + 1,] <- list(iteration_name, attris, k, m)
-
-write_csv(aa_iteration, here::here("outputs/toy/aa_iteration.csv"), append = TRUE)
 
