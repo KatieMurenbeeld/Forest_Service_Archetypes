@@ -33,7 +33,7 @@ download_data <- function(url, file_name) {
     unzip(zipfile = here::here(paste0("data/toy/original/", file_name)))
   }
   else {
-    download.file(url, here::here(paste0("data/toy/original/", file_name)))
+    download.file(url, here::here(paste0("data/toy/original/"), file_name))
   }
 }
 
