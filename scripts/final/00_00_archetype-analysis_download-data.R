@@ -146,19 +146,19 @@ download_data(url, file_name)
 # see data/original/NA_TreeAge_1096/data 
 
 # Wildfire Risk
-# See scripts/final/00_archetype-analysis_download-prep-fire.R
+# See scripts/final/00_01_archetype-analysis_download-prep-fire.R
+
+# Temp, Precip, Elevation, and Travel time 
+# See scripts/final/00_02_archetype-analysis_geodata_data-prep.R
 
 # Mill capacity data 
-# See scripts/final/00_archetype-analysis_forisk-analysis.R
+# See scripts/final/00_03_archetype-analysis_forisk-analysis.R
 # Note that raw data is only available to subscribers
 # Change in mill capacity will be in "data/processed" folder
 # millchange_cap.tif. millchangecap_interp*.tif
 
-# Temp, Precip, Elevation, and Travel time 
-# See scripts/final/00_archetype-analysis_geodata_data-prep.R
-
 # Protected Lands and Federal Ownership
-# See scripts/final/00_archetype-analysis_PADUS-data-prep.R
+# See scripts/final/00_04_archetype-analysis_PADUS_data-prep.R
 
 # Forest Gain from Hansen et al 2013 (Global Forest Change) - testing
 # See https://earthenginepartners.appspot.com/science-2013-global-forest/download_v1.1.html
