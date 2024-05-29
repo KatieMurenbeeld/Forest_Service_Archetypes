@@ -11,7 +11,7 @@ library(units)
 library(spdep)
 library(spatstat)
 
-#----Distance to mills and Mill Capacity "hotspots"
+#----Distance to mills and change in mill capacity
 # Pseudocode:
 # 1. Load the data (FORISK and county boundaries)
 # 2. Align the data
@@ -38,12 +38,9 @@ counties <- tigris::counties(state = continental.states$state, cb = TRUE)
 conus_mills <- mill_sf %>%
   filter(Region != "Canada West") %>%
   filter(Region != "Canada East") %>%
-  filter(State_Prov %in% continental.states$state) #%>% # need to keep all mills in order to calculate change in mill capacity for mills that have closed
+  filter(State_Prov %in% continental.states$state) #%>% 
+# need to keep all mills in order to calculate change in mill capacity for mills that have closed
   #filter(Status == "Open")
-
-# What is the distribution of total wood capacity?
-
-hist(conus_mills$Total_Wood, main = "Distribution of Total Wood Capacity", xlab = "Total Wood Capacity", ylab = "Frequency")
 
 # 2. Align the data
 st_crs(conus_mills)
