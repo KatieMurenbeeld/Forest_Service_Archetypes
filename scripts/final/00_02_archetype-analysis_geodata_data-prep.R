@@ -1,4 +1,5 @@
-## Download and process raster data of temperature, precipitation, and soil moisture
+## Download and process raster data of temperature and precipitation
+## Download and process travel time data
 ## Download elevation data and calculate a topographic complexity index
 
 # 0. Load libraries and set projection
