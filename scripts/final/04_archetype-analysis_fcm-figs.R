@@ -14,8 +14,8 @@ library(ggsci)
 # Load the data
 fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
 fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
-conus_attri <- rast("data/processed/rast_fcm_08_2024-04-05.tif")
-map.conus <- rast("data/processed/FCM_08_2024-04-05.tif")
+conus_attri <- rast("data/processed/rast_fcm_2024-05-29.tif")
+map.conus <- rast("data/processed/FCM_2024-05-29.tif")
 
 ## Reproject the forest service shapes to NAD83
 fs_nf.proj <- fs_nf %>% 
@@ -37,11 +37,11 @@ fcm_nf_map <- ggplot() +
   geom_raster(aes(x = group.df$x, y = group.df$y, fill = as.factor(group.df$Groups))) +
   geom_sf(data = fs_nf.proj, fill = NA, color = "black", size = 2) +
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "Fuzzy Cluster Map: k=6, m=2.0") +
+  labs(title = "Fuzzy Cluster Map: k=5, m=1.7") +
   theme(legend.position = "bottom")
 
 fcm_nf_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_nf_map_iter008_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
 
 ### And the Forest Region boundaries
 
@@ -49,11 +49,11 @@ fcm_reg_map <- ggplot() +
   geom_raster(aes(x = group.df$x, y = group.df$y, fill = as.factor(group.df$Groups))) +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black", size = 150) +
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "Fuzzy Cluster Map: k=6, m=2.0") +
+  labs(title = "Fuzzy Cluster Map: k=5, m=1.7") +
   theme(legend.position = "bottom")
 
 fcm_reg_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_08_reg_map_", Sys.Date(), ".png"), plot = fcm_reg_map, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_reg_map_", Sys.Date(), ".png"), plot = fcm_reg_map, width = 12, height = 12, dpi = 300)  
 
 ## Create maps of the attributes
 rrl.df <- conus_attri$rrlurb %>% as.data.frame(xy = TRUE)
