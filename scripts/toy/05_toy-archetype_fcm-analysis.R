@@ -22,7 +22,7 @@ names(dataset) <- names(rst_fcm_sc)
 #---Run the FCM---- 
 FCM_result <- CMeans(dataset, k = 6, m = 1.75, standardize = FALSE)
 map.res <- rast(FCM_result$rasters)
-writeRaster(map.res[["Groups"]], filename = paste0("data/toy/processed/FCM_", Sys.Date(), ".tif"))
+writeRaster(map.res[["Groups"]], filename = paste0("data/toy/processed/FCM_", Sys.Date(), ".tif"), overwrite = TRUE)
 
 
 ##---save the iteration, k, m as a dataframe----
