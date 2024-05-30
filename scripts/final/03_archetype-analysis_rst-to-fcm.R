@@ -62,9 +62,9 @@ writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "fu
 names(rast_stack)
 
 # Select Variables for FCmeans
-#rst_fcm <- rast_stack[[c("R_NET_M", "pct_pay", "sghts_p", "gov_p",
-#                         "ave_dem", "lsscll_", "WHP", "CL_ELEV", 
-#                         "distance_to_wilderness_m", "last")]]
+rst_fcm <- rast_stack[[c("pct_pay", "pct_frs", "R_NET_M", "HSEF",
+                         "HBF_PFS", "PM25F_PFS", "coverag", "E", 
+                         "WHP", "last")]]
 rst_fcm <- rast_stack
 names(rst_fcm) <- c("pct_for_pay", "pct_forest", "forest_depend", "net_mig", 
                     "less_hs", "house_burd", "ener_burd", "pm25", 
