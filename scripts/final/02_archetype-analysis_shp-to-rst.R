@@ -89,7 +89,7 @@ fed_even_rast <- rasterize(vect(fed_shann_proj), ref_rast, field = "E")
 rast_stack <- c(percent_forpay_rast, percent_for_rast, fordep_rast, delpop_rast, 
                 lesshighsch_rast, propburd_rast, enerburd_rast, 
                 pm25_rast, percent_sitesee_rast, percent_govpay_rast, 
-                percent_fed_area_rast, fed_even_rast)
+                percent_fed_area_rast, fed_even_rast, wild_dist_crop, criti_dist_crop)
 
 writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "arch_attri_", Sys.Date(), ".tif"), overwrite = TRUE)
 
