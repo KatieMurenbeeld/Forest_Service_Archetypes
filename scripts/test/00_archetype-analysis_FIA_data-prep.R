@@ -8,6 +8,9 @@
 #publisher={Elsevier}
 #}
 
+# Using the rFIA package calculate county level stand age and productivity
+# 0. Load libraries and extent timeout
+
 library(rFIA)
 library(tidyverse) 
 library(tigris)
@@ -20,69 +23,18 @@ library(ggplot2)
 
 options(timeout=6000)
 
-## See code from https://rfia.netlify.app/tutorial/bigdata/
+# Steps:
+# 0. Load libraries and extent timeout
+# 1. Download the FIA COND tables for states in the contiguous US
+#    Download the state counties using tigris
+# 2. Create a GEOID for the FIA data
+# 3. Update the productivity code with real number
+# 4. Summarise the stand age and productivity 
+# 5. Join to counties and make a simple feature (sf) 
+# 6. Validate geometries
+# 7. Save shapefile
 
-## Download data for Idaho
-id_fia <- getFIA(states = "ID", dir = here::here("data/original/"))
-countiesID <- tigris::counties(state = "ID")
-
-## Now set up a Remote.FIA.Database with readFIA by setting inMemory = FALSE
-#fia <- readFIA( here::here("data/original/"), inMemory = FALSE)
-
-# Get most recent data using clipFIA
-idMR <- clipFIA(id_fia, mostRecent = TRUE)
-
-# Can group tpa (tree per acre) estimates by areal units (see https://rfia.netlify.app/tutorial/spatial/)
-
-tpa_sf <- tpa(idMR, polys = countiesID, returnSpatial = TRUE)
-plot(tpa_sf$BAA)
-
-## Plot distribution of Basal area/ acre across space
-plotFIA(tpa_sf, y = BAA, legend.title = 'BAA (sq.ft/acre)')
-
-# Stand age and productivity
-prod_codes <- c()
-
-stdage <- idMR$COND$STDAGE
-productivity <- idMR$COND$SITECLCD
-
-id_age_prod <- dplyr::select(idMR$COND, COUNTYCD, STDAGE, SITECLCD)
-
-id_age_prod <- id_age_prod %>%
-  mutate(siteprod = case_when(
-    SITECLCD == 1 ~ 225,
-    SITECLCD == 2 ~ 194.5,
-    SITECLCD == 3 ~ 142,
-    SITECLCD == 4 ~ 102, 
-    SITECLCD == 5 ~ 67,
-    SITECLCD == 6 ~ 34.5, 
-    SITECLCD == 7 ~ 9.5
-  ))
-
-id_age_prod_grp <- id_age_prod %>%
-  group_by(COUNTYCD) %>%
-  summarise(mean_stdage = mean(as.numeric(STDAGE), na.rm= TRUE),
-            max_prodcd = max(as.numeric(SITECLCD), na.rm= TRUE), 
-            min_prodcd = min(as.numeric(SITECLCD), na.rm= TRUE),
-            mean_prod = mean(as.numeric(siteprod), na.rm = TRUE))
-
-id_age_prod_grp$COUNTYFP <- str_pad(id_age_prod_grp$COUNTYCD, 3, pad = "0")
-
-# join to county data
-id_age_prod_sf <- st_as_sf(left_join(id_age_prod_grp, countiesID, by = "COUNTYFP"))
-
-
-ggplot() +
-  geom_sf(data = id_age_prod_sf, mapping = aes(color = mean_stdage, fill = mean_stdage))
-ggplot() +
-  geom_sf(data = id_age_prod_sf, mapping = aes(color = max_prodcd, fill = max_prodcd))
-ggplot() +
-  geom_sf(data = id_age_prod_sf, mapping = aes(color = min_prodcd, fill = min_prodcd))
-ggplot() +
-  geom_sf(data = id_age_prod_sf, mapping = aes(color = mean_prod, fill = mean_prod))
-
-## scale up for CONUS
-
+# 1. Load the county boundaries and FIA data
 ## Load county boundaries from tigris
 counties <- tigris::counties()
 ##Get Continental US list
@@ -101,28 +53,28 @@ counties <- counties %>%
   filter(STATEFP %in% us.states$FIPS) %>%
   dplyr::select(GEOID, COUNTYFP, STATEFP, geometry)
 
+## Download FIA COND table for all states
+
+## create a list of the states for the loop
 states_list <- continental.states$state
 
-## See code from https://rfia.netlify.app/tutorial/bigdata/
-## Download data for all states, only need the COND table
 for (s in states_list){
   getFIA(s, dir = here::here("data/original/fia/"), tables = "COND", load = TRUE)
 }
 
-## Now set up a Remote.FIA.Database with readFIA by setting inMemory = FALSE
-## Instead of reading in the data now, readFIA will simply save a pointer
-## and allow the estimator functions to read/process the data state-by-state
+## read in the fia data
 fia <- readFIA(here::here("data/original/fia/"), tables = "COND", inMemory = TRUE)
-#fiaMR <- clipFIA(fia, mostRecent = TRUE)
 
-# from the COND table select the STATECD, COUNTYCD, STDAGE, and SITECLCD
+## from the COND table select the STATECD, COUNTYCD, STDAGE, and SITECLCD
 conus_age_prod <- dplyr::select(fia$COND, STATECD, COUNTYCD, STDAGE, SITECLCD)
 
-# create a GEOID of the of the county and state codes (make the FIPS code) to 
-# easily join to counties and to better group and summarise
+# 2. Create a GEOID column
+## create a GEOID of the of the county and state codes (make the FIPS code) to 
+## easily join to counties and to better group and summarise
 conus_age_prod <- conus_age_prod %>%
   mutate(GEOID = paste0(str_pad(as.character(STATECD), 2, pad = "0"), str_pad(COUNTYCD, 3, pad = "0")))
 
+# 3. Update the productivity code and replace -999 with NA in STDAGE
 # put the SITECD (productivity code) into a real number code 1 = 225 cuf/ac/yr, 
 # but every other code is the ((max - min)/2) + min 
 # see https://www.fs.usda.gov/rm/pubs/rmrs_gtr245.pdf 
@@ -139,19 +91,25 @@ conus_age_prod <- conus_age_prod %>%
     SITECLCD == 7 ~ 9.5
   ))
 
-# group the data by GEOID (FIPS code) and summarise
-# there will be warning for rows with no data
+conus_age_prod <- conus_age_prod %>%
+  mutate(STDAGE_CL = case_when(
+    STDAGE == -999 ~ NA, 
+    STDAGE >= -999 ~ STDAGE))
+
+# 4. Summarise the data
+## group the data by GEOID (FIPS code)
+## there will be warning for rows with no data
 conus_age_prod_grp <- conus_age_prod %>%
   group_by(GEOID) %>%
-  summarise(mean_stdage = mean(as.numeric(STDAGE), na.rm= TRUE),
+  summarise(mean_stdage = mean(as.numeric(STDAGE_CL), na.rm= TRUE),
             max_prodcd = max(as.numeric(SITECLCD), na.rm= TRUE), 
             min_prodcd = min(as.numeric(SITECLCD), na.rm= TRUE),
             mean_prod = mean(as.numeric(siteprod), na.rm = TRUE))
 
-# join to the county geometries and make it an sf
+# 5. Join to the county geometries and make it an sf
 conus_age_prod_sf <- st_as_sf(left_join(conus_age_prod_grp, counties, by = "GEOID"))
 
-## Check and fix validity
+# 6. Check and fix validity
 all(st_is_valid(conus_age_prod_sf))
 
 ## Check for empty geometries and invalid or corrupt geometries 
@@ -159,10 +117,20 @@ any(st_is_empty(conus_age_prod_sf))
 conus_age_prod_sf_noempty <- conus_age_prod_sf[!st_is_empty(conus_age_prod_sf),]
 any(st_is_empty(conus_age_prod_sf_noempty))
 any(is.na(st_is_valid(conus_age_prod_sf_noempty)))
-#any(na.omit(st_is_valid(var_bdry_noempty)) == FALSE)
+#any(na.omit(st_is_valid(conus_age_prod_sf)) == FALSE)
 st_is_longlat(conus_age_prod_sf_noempty)
 
-## Save the validated shapefile
+## Double check plots
+ggplot() +
+  geom_sf(data = conus_age_prod_sf, mapping = aes(color = mean_stdage, fill = mean_stdage))
+ggplot() +
+  geom_sf(data = conus_age_prod_sf, mapping = aes(color = max_prodcd, fill = max_prodcd))
+ggplot() +
+  geom_sf(data = conus_age_prod_sf, mapping = aes(color = min_prodcd, fill = min_prodcd))
+ggplot() +
+  geom_sf(data = conus_age_prod_sf, mapping = aes(color = mean_prod, fill = mean_prod))
+
+# 7. Save the validated shapefile
 write_sf(obj = conus_age_prod_sf_noempty, dsn = here::here("data/processed/conus_age_prod_fia.shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
