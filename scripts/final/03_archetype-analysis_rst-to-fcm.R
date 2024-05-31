@@ -39,20 +39,18 @@ mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
 
 # Before resampling forest ownership calculate the percent area that is private
 ## reclassify the raster
-# aggregate first?
-for_own_3k <- aggregate(for_own, fact=100, fun = "sum", cores = 2)
-
 ### make reclassification matrix
 m <- c(1, 4, 1, 
-       4, 8, 0)
+       4, 8, 0, 
+       NA, NA, 0)
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 
 ### reclassify using matrix, make NA = 0
-for_own_rc <- classify(for_own, rclmat, include.lowest=TRUE)
-for_own_rc[is.na(for_own_rc[])] <- 0 
-# aggregate first?
-#for_own_3k <- aggregate(for_own_rc, fact=100, fun = "sum", cores = 2)
-for_own_resamp <- resamp(for_own_rc, ref_rast, "bilinear")
+for_own_rc <- classify(for_own, rclmat, include.lowest=TRUE, others = 0)
+#for_own_rc[is.na(for_own_rc[])] <- 0 
+
+### double check plot
+plot(for_own_rc)
 
 ## try using terra::extract() or zonal() to get fraction of county covered by raster
 
@@ -72,28 +70,11 @@ counties <- counties %>%
   filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, geometry)
 
-identical(crs(for_own_rc), st_crs(counties))
-
-# resample first?
-#for_own_rs <- resamp(for_own_rc, ref_rast, "bilinear")
-
 # reproject counties to raster
 counties_proj <- st_transform(counties, crs(for_own_rc))
 identical(crs(for_own_rc), st_crs(counties_proj))
 
-
-# test for 1 county
-test_own <- crop(for_own_rc, counties_proj[1,1], mask = TRUE)
-test_own_lay <- as.factor(test_own)
-plot(test_own)
-plot(counties_proj[1,1])
-
-test_own_3k <- terra::aggregate(test_own, fact = 100, fun = "mean")
-
-freq(test_own)
-a <- cellSize(test_own)
-
-test_extract <- terra::extract(test_own, counties_proj[1,1], fun = NULL, exact = TRUE)
+ex <- raster::extract(for_own_rc, counties_proj, fun=mean, na.rm=TRUE)
 
 ### make into polygon and load counties 
 #for_own_sf <- as.polygons(for_own_rc)
