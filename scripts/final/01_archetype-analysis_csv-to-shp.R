@@ -26,7 +26,7 @@ continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI
 
 counties <- tigris::counties()
 counties <- counties %>%
-  filter(STATEFP %in% us.states$FIPS) %>%
+  filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, geometry)
 
 # Create one large table with FIPS codes and desired variables
