@@ -110,14 +110,14 @@ file_name <- ""
 
 download_data(url, file_name)
 
+#---Download tif data-----------------------------------------------------------
+## These may be too large to do through RStudio?
+
 # Forest Ownership
 url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2020-0044/RDS-2020-0044.zip"
 file_name <- ""
 
 download_data(url, file_name)
-
-#---Download tif data-----------------------------------------------------------
-## These may be too large to do through RStudio?
 
 # National Land Cover Data 2021
 #url <- "https://s3-us-west-2.amazonaws.com/mrlc/nlcd_2021_land_cover_l48_20230630.zip"
