@@ -74,7 +74,18 @@ counties <- counties %>%
 counties_proj <- st_transform(counties, crs(for_own_rc))
 identical(crs(for_own_rc), st_crs(counties_proj))
 
-ex <- raster::extract(for_own_rc, counties_proj, fun=mean, na.rm=TRUE)
+for_own_rc_crop <- crop(for_own_rc, counties_proj[4:5,1], mask = TRUE)
+plot(for_own_rc_crop)
+# test out a smaller portion of the data
+test_county <- test_county %>% mutate(area = terra::extract(for_own_rc_crop, counties_proj[2,1], fun = mean, na.rm = TRUE))
+test_counties <- counties_proj[4:5, 1]
+test_counties <- test_counties %>% mutate(area = terra::extract(for_own_rc_crop, test_counties, fun = mean, na.rm = TRUE))
+
+ggplot(test_counties) + 
+  geom_sf(mapping = aes(fill = area$forest_own1, color = area$forest_own1))
+
+area_counties <- counties_proj %>%
+  mutate(area = terra::extract(for_own_rc, counties_proj, fun = mean, na.rm = TRUE))
 
 ### make into polygon and load counties 
 #for_own_sf <- as.polygons(for_own_rc)
