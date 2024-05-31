@@ -32,7 +32,7 @@ counties <- counties %>%
 # Create one large table with FIPS codes and desired variables
 ## BRIC data
 bric_2020 <- bric %>%
-  dplyr::select(-"State Code (FIPS)", -"County Code (FIPS)", -"County") %>%
+  dplyr::select("GEOID", "COMM CAPITAL") %>%
   rename("FIPS" = "GEOID")
 
 ## Change in Population
@@ -42,21 +42,20 @@ delpop <- del_pop %>%
   rename("FIPS" = "FIPStxt", "R_NET_MIG_2021" = "Value")
 
 ## Current Population
-pop_2020 <- del_pop %>%
-  filter(Attribute == "CENSUS_2020_POP") %>%
-  dplyr::select(FIPStxt, Value) %>%
-  rename("FIPS" = "FIPStxt", "CENSUS_2020_POP" = "Value") 
+#pop_2020 <- del_pop %>%
+#  filter(Attribute == "CENSUS_2020_POP") %>%
+#  dplyr::select(FIPStxt, Value) %>%
+#  rename("FIPS" = "FIPStxt", "CENSUS_2020_POP" = "Value") 
 
 ## Forest Dependence Variables
 fordep <- forest_depend %>%
-  dplyr::select(fips, forest.area, pct.pay, pct.forest, forest.dependent) %>%
+  dplyr::select(fips, pct.pay, pct.forest) %>%
   rename("FIPS" = "fips")
 
 # Economic Data
 econ_bea$Description <- trimws(econ_bea$Description)
 econ_bea$X2022 <- as.numeric(econ_bea$X2022)
-linecodes <- as.character(c(1, 81, 100, 200, 300, 400, 500, 600, 700, 800, 807, 900, 1000,
-               1100, 1200, 1300, 1500, 1600, 1700, 1800, 1900, 2000, 2010))
+linecodes <- as.character(c(1, 100, 200))
 
 col_names <- unique(econ_bea$Description)
 
@@ -69,20 +68,14 @@ econ_comp <- econ_bea %>%
   group_by(FIPS) %>%
   summarise_all(sum)
 
-names <- c("acc_food", "art_rec", "emp_comp", "constr", "edu", "farm", "fin_ins",
-     "forest", "gov", "health", "info", "mngmnt", "manuf", "mining", "other",
-     "pro_scit", "real_est", "retail", "sightsee", "st_loc", "tran_war",
-     "utils", "ws_trade")
-colnames(econ_comp)[2:24] <- names
+names <- c("total_comp", "forest", "mining")
+colnames(econ_comp)[2:4] <- names
 
-econ_compercent <- cbind(econ_comp, econ_comp[names]/econ_comp$emp_comp)
-
-names2 <- c("acc_food_p", "art_rec_p", "emp_comp_p", "constr_p", "edu_p", "farm_p", "fin_ins_p",
-           "forest_p", "gov_p", "health_p", "info_p", "mngmnt_p", "manuf_p", "mining_p", "other_p",
-           "pro_scit_p", "real_est_p", "retail_p", "sightsee_p", "st_loc_p", "tran_war_p",
-           "utils_p", "ws_trade_p")
-
-colnames(econ_compercent)[25:47] <- names2
+econ_comp <- econ_comp %>%
+  mutate(for_pct = (forest/total_comp) * 100) %>%
+  mutate(min_pct = (mining/total_comp) * 100) %>%
+  mutate(extract = (forest + mining)) %>%
+  mutate(ext_pct = (extract/total_comp) * 100)
 
 ## Make sure all FIPS codes are padded with 0s for a total of 5 characters
 update_fips <- function(data_set) {
@@ -93,12 +86,12 @@ update_fips <- function(data_set) {
 
 fordep_fips <- update_fips(fordep)
 delpop_fips <- update_fips(delpop)
-econ_compercent_fips <- update_fips(econ_compercent) # need to adjust column names
-econ_compercent_fips <- econ_compercent_fips %>% 
-  mutate(FIPS= trimws(as.character(FIPS)))
+econcomp_fips <- update_fips(econ_comp) # need to adjust column names
+econcomp_fips <- econcomp_fips %>%
+  mutate(FIPS = trimws(as.character(FIPS)))
 bric_2020_fips <- update_fips(bric_2020)
 
-all_vars <- plyr::join_all(list(fordep_fips, delpop_fips, econ_compercent_fips, bric_2020_fips),
+all_vars <- plyr::join_all(list(fordep_fips, delpop_fips, econcomp_fips, bric_2020_fips),
                      by='FIPS', 
                      type='left')
 
