@@ -7,7 +7,7 @@ library(tigris)
 #---Load the shapefiles-----
 
 # variables from csv county data
-all_vars <- st_read(here::here("data/processed/all_vars_to_rst_2024-05-29.shp"))
+all_vars <- st_read(here::here("data/processed/all_vars_to_rst_2024-05-31.shp"))
 
 # Wilderness areas
 wild <- st_read(here::here("data/original/S_USA.Wilderness.shp"))
@@ -74,22 +74,26 @@ names(criti_dist_crop) <- "distance_to_crithab_m"
 #---Rasterize shapefiles with variables of interest----
 percent_forpay_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "pct_pay")
 percent_for_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "pct_frs")
-fordep_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "frst_dp")
+percent_ext_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "ext_pct")
+commcap_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "COMMCAP")
+#fordep_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "frst_dp")
 delpop_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "R_NET_M")
 lesshighsch_rast <- rasterize(vect(cejst_proj), ref_rast, field = "HSEF")
 propburd_rast <- rasterize(vect(cejst_proj), ref_rast, field = "HBF_PFS")
 enerburd_rast <- rasterize(vect(cejst_proj), ref_rast, field = "EBF_PFS") 
 pm25_rast <- rasterize(vect(cejst_proj), ref_rast, field = "PM25F_PFS")
-percent_sitesee_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "sghts_p")
-percent_govpay_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "gov_p")
+#percent_sitesee_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "sghts_p")
+#percent_govpay_rast <- rasterize(vect(all_vars_proj), ref_rast, field = "gov_p")
 percent_fed_area_rast <- rasterize(vect(fed_cov_proj), ref_rast, field = "coverag")
 fed_even_rast <- rasterize(vect(fed_shann_proj), ref_rast, field = "E")
 
 #---Check alignment and extents-----
-rast_stack <- c(percent_forpay_rast, percent_for_rast, fordep_rast, delpop_rast, 
-                lesshighsch_rast, propburd_rast, enerburd_rast, 
-                pm25_rast, percent_sitesee_rast, percent_govpay_rast, 
-                percent_fed_area_rast, fed_even_rast, wild_dist_crop, criti_dist_crop)
+rast_stack <- c(percent_forpay_rast, percent_for_rast, percent_ext_rast, 
+                commcap_rast, delpop_rast, lesshighsch_rast, propburd_rast,
+                enerburd_rast, pm25_rast, percent_fed_area_rast, fed_even_rast, 
+                wild_dist_crop, criti_dist_crop)
+# Visually check the rasters
+plot(rast_stack)
 
 writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "arch_attri_", Sys.Date(), ".tif"), overwrite = TRUE)
 
