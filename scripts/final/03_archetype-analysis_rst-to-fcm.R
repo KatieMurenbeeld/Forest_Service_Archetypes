@@ -9,7 +9,7 @@ library(geocmeans)
 library(RColorBrewer)
 library(viridis)
 library(raster)
-library()
+#library(extractextractr) # I want this package but cannot seem to install
 
 #---Load the data-----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
@@ -39,14 +39,64 @@ mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
 
 # Before resampling forest ownership calculate the percent area that is private
 ## reclassify the raster
+# aggregate first?
+for_own_3k <- aggregate(for_own, fact=100, fun = "sum", cores = 2)
+
 ### make reclassification matrix
 m <- c(1, 4, 1, 
        4, 8, 0)
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 
-### reclassify using matrix
+### reclassify using matrix, make NA = 0
 for_own_rc <- classify(for_own, rclmat, include.lowest=TRUE)
+for_own_rc[is.na(for_own_rc[])] <- 0 
+# aggregate first?
+#for_own_3k <- aggregate(for_own_rc, fact=100, fun = "sum", cores = 2)
+for_own_resamp <- resamp(for_own_rc, ref_rast, "bilinear")
 
+## try using terra::extract() or zonal() to get fraction of county covered by raster
+
+##Get Continental US list
+us.abbr <- unique(tidycensus::fips_codes$state)[1:51]
+us.name <- unique(tidycensus::fips_codes$state_name)[1:51]
+us.fips <- unique(tidycensus::fips_codes$state_code)[1:51]
+
+us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
+colnames(us.states) <- c("state", "STATENAME", "FIPS")
+us.states$state <- as.character(us.states$state)
+us.states$STATENAME <- as.character(us.states$STATENAME)
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+
+counties <- tigris::counties()
+counties <- counties %>%
+  filter(STATEFP %in% continental.states$FIPS) %>%
+  dplyr::select(GEOID, geometry)
+
+identical(crs(for_own_rc), st_crs(counties))
+
+# resample first?
+#for_own_rs <- resamp(for_own_rc, ref_rast, "bilinear")
+
+# reproject counties to raster
+counties_proj <- st_transform(counties, crs(for_own_rc))
+identical(crs(for_own_rc), st_crs(counties_proj))
+
+
+# test for 1 county
+test_own <- crop(for_own_rc, counties_proj[1,1], mask = TRUE)
+test_own_lay <- as.factor(test_own)
+plot(test_own)
+plot(counties_proj[1,1])
+
+test_own_3k <- terra::aggregate(test_own, fact = 100, fun = "mean")
+
+freq(test_own)
+a <- cellSize(test_own)
+
+test_extract <- terra::extract(test_own, counties_proj[1,1], fun = NULL, exact = TRUE)
+
+### make into polygon and load counties 
+#for_own_sf <- as.polygons(for_own_rc)
 
 # Check alignment and stack the rasters
 rast_stack <- c(arch_attri, ref_rast, mill_change_resamp, prec_seas, temp_seas, 
