@@ -95,6 +95,13 @@ file_name <- "usa.zip"
 
 download_data(url, file_name)
 unzip(paste0(here::here("data/toy/original/"), file_name),  exdir = here::here("data/toy/original/"))
+
+# Forest Ownership
+url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2020-0044/RDS-2020-0044.zip"
+file_name <- ""
+
+download_data(url, file_name)
+
 #---4. Download tif data----
 ## These are too large for toy example?
 
