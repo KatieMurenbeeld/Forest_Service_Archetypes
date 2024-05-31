@@ -17,6 +17,7 @@ prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
 temp_seas <- rast(here::here("data/processed/temp_seas_3000m.tif"))
 roughness <- rast(here::here("data/processed/roughness_3000m.tif"))
 trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
+for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
 
 ## original rasters
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
