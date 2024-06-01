@@ -9,7 +9,7 @@ library(geocmeans)
 library(RColorBrewer)
 library(viridis)
 library(raster)
-#library(extractextractr) # I want this package but cannot seem to install
+library(exactextractr) # I want this package but cannot seem to install because I was spelling it wrong :-/
 
 #---Load the data-----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
@@ -41,8 +41,8 @@ mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
 ## reclassify the raster
 ### make reclassification matrix
 m <- c(1, 4, 1, 
-       4, 8, 0, 
-       NA, NA, 0)
+       4, 8, 0) 
+#       NA, NA, 0)
 rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 
 ### reclassify using matrix, make NA = 0
@@ -73,6 +73,23 @@ counties <- counties %>%
 # reproject counties to raster
 counties_proj <- st_transform(counties, crs(for_own_rc))
 identical(crs(for_own_rc), st_crs(counties_proj))
+
+# test using exactextractr::frac()
+
+counties_proj$test_areas <- exact_extract(for_own_rc, counties_proj, "frac")
+pct_pub <- counties_proj$pct_pubforest
+pct_priv <- counties_proj$pct_privforest
+
+counties_pubpriv< - cbind(counties_proj, exact_extract(for_own_rc, counties_proj, "frac"))
+
+ggplot(counties_proj) + 
+  geom_sf(mapping = aes(fill = test_areas$frac_1, color = test_areas$frac_1))
+
+# save the shapefile
+write_sf(obj = counties_proj, dsn = paste0(here::here("data/processed/"), "county_private_forest_pct_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+test_cnt <- st_read(here::here("data/processed/county_private_forest_pct_2024-05-31.shp"))
+saveRDS(counties_proj, file = here::here("data/processed/county_private_forest_pct.rds"))
+test_rds <- readRDS(here::here("data/processed/county_private_forest_pct.rds"))
 
 for_own_rc_crop <- crop(for_own_rc, counties_proj[4:5,1], mask = TRUE)
 plot(for_own_rc_crop)
