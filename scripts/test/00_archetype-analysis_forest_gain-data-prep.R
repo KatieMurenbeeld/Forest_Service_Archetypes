@@ -18,12 +18,12 @@ options(timeout=6000)
 # 40N, 130W; 40N, 120W; 40N, 110W; 40N, 100W; 40N, 90W; 40N, 80W
 # 30N, 120W; 30N, 110W; 30N, 100W; 30N, 90W; 30N, 80W
 
-granules <- c("50N_130W", "50N_120W", "50N_110W", "50N_100W", "50N_90W", 
-              "50N_80W", "50N_70W", "40N_130W", "40N_120W", "40N_110W",
-              "40N_100W", "40N_90W", "40N_80W", "30N_120W", "30N_110W",
-              "30N_100W", "30N_90W", "30N_80W")
+granules <- c("50N_130W", "50N_120W", "50N_110W", "50N_100W", "50N_090W", 
+              "50N_080W", "50N_070W", "40N_130W", "40N_120W", "40N_110W",
+              "40N_100W", "40N_090W", "40N_080W", "30N_120W", "30N_110W",
+              "30N_100W", "30N_090W", "30N_080W")
 
-granules <- c("50N_130W", "50N_120W")
+#granules <- c("50N_130W", "50N_120W")
 
 # Download the data
 download_forgain <- function(grans){    
@@ -34,19 +34,6 @@ download_forgain <- function(grans){
   fnames <- list.files(exdir)
   return(fnames)
 }
-#tmp <- tempfile()
-exdir <- paste0("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
-gain.url <- paste0("https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11/Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
-download.file(gain.url, exdir)
-list.files(here::here("data/original/forest_gain/"))
-
-
-exdir <- here::here("data/original/forest_gain/")
-exfile <- paste0(exdir, "Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
-dir.name <- list.files(exdir)
-rast.file <- list.files(paste0(exdir,"/", dir.name), pattern="*.tif$", full.names = TRUE)
-dir.name
-rast.file
 
 for (gran in granules){
 download_forgain(gran)
@@ -55,6 +42,13 @@ download_forgain(gran)
 fnames_list <- list.files(here::here("data/original/forest_gain"), 
                           #pattern = "WHP", 
                           full.names = TRUE)
+
+# check the crs and res of the rasters
+# from website This global dataset is divided into 10x10 degree tiles, consisting of seven files per tile. 
+# All files contain unsigned 8-bit values and have a spatial resolution of 1 arc-second per pixel, or approximately 30 meters per pixel at the equator.
+# So I think I can keep the same factor? Could also load in whp rast as a reference raster?
+test_rast <- rast(here::here("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_30N_080W.tif"))
+test_rast
 
 # For next time update this function to aggregate at 3km-3000m (fact = 100) and 1.5km-1500m (fact = 50)
 agg_forgain <- function(ogrst, fac, res){
@@ -65,12 +59,15 @@ agg_forgain <- function(ogrst, fac, res){
   return(fnames.process) 
 }
 
+agg_forgain(here::here("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_30N_080W.tif"),
+            fac = 100, res = "3000m")
+
 for (rst in fnames_list) {
   agg_forgain(rst, 100, "3000m")
 }
 
 prefix <- "forestgain"
-res <- c("1500m", "3000m") 
+res <- "3000m" 
 
 merge_all_rst <- function(res){
   file.list <- list.files(here::here("data/processed/forestgain_aggregated"), pattern = res, full.names = TRUE)
@@ -87,4 +84,5 @@ for (r in res) {
   merge_all_rst(r)
 }
 
-
+forgain_rst <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
+plot(forgain_rst)
