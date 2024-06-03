@@ -1,3 +1,12 @@
+library(tidyverse)
+library(sf)
+library(terra)
+library(tigris)
+library(stringr)
+library(RCurl)
+
+# Set the timeout to 100 minutes (6000 seconds)
+options(timeout=6000)
 
 
 #---Note---------
@@ -9,4 +18,73 @@
 # 40N, 130W; 40N, 120W; 40N, 110W; 40N, 100W; 40N, 90W; 40N, 80W
 # 30N, 120W; 30N, 110W; 30N, 100W; 30N, 90W; 30N, 80W
 
+granules <- c("50N_130W", "50N_120W", "50N_110W", "50N_100W", "50N_90W", 
+              "50N_80W", "50N_70W", "40N_130W", "40N_120W", "40N_110W",
+              "40N_100W", "40N_90W", "40N_80W", "30N_120W", "30N_110W",
+              "30N_100W", "30N_90W", "30N_80W")
+
+granules <- c("50N_130W", "50N_120W")
+
 # Download the data
+download_forgain <- function(grans){    
+  exdir <- here::here("data/original/forest_gain/")
+  exfile <- paste0(exdir, "Hansen_GFC-2023-v1.11_gain_", grans, ".tif")
+  gain.url <- paste0("https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11/Hansen_GFC-2023-v1.11_gain_", grans, ".tif")
+  download.file(gain.url, exfile)
+  fnames <- list.files(exdir)
+  return(fnames)
+}
+#tmp <- tempfile()
+exdir <- paste0("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
+gain.url <- paste0("https://storage.googleapis.com/earthenginepartners-hansen/GFC-2023-v1.11/Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
+download.file(gain.url, exdir)
+list.files(here::here("data/original/forest_gain/"))
+
+
+exdir <- here::here("data/original/forest_gain/")
+exfile <- paste0(exdir, "Hansen_GFC-2023-v1.11_gain_", granules[1], ".tif")
+dir.name <- list.files(exdir)
+rast.file <- list.files(paste0(exdir,"/", dir.name), pattern="*.tif$", full.names = TRUE)
+dir.name
+rast.file
+
+for (gran in granules){
+download_forgain(gran)
+}
+
+fnames_list <- list.files(here::here("data/original/forest_gain"), 
+                          #pattern = "WHP", 
+                          full.names = TRUE)
+
+# For next time update this function to aggregate at 3km-3000m (fact = 100) and 1.5km-1500m (fact = 50)
+agg_forgain <- function(ogrst, fac, res){
+  rasters <- rast(ogrst)
+  fnames.process <- paste0("data/processed/forestgain_aggregated/",names(rasters), "_", res, ".tif")
+  rasters.agg <- aggregate(rasters, fact=fac, cores = 2)
+  writeRaster(rasters.agg, fnames.process, overwrite=TRUE)
+  return(fnames.process) 
+}
+
+for (rst in fnames_list) {
+  agg_forgain(rst, 100, "3000m")
+}
+
+prefix <- "forestgain"
+res <- c("1500m", "3000m") 
+
+merge_all_rst <- function(res){
+  file.list <- list.files(here::here("data/processed/forestgain_aggregated"), pattern = res, full.names = TRUE)
+  rasters <- lapply(file.list, function(x) rast(x))
+  rst.sprc <- sprc(rasters)
+  m <- merge(rst.sprc)
+  names(m) <- prefix
+  fnames.merge <- paste0(prefix, "_merge", res, ".tif")
+  writeRaster(m, filename = paste0("data/processed/forestgain_merged/", fnames.merge), overwrite=TRUE)
+  return(paste0("data/processed/forestgain_merged/", fnames.merge))
+}
+
+for (r in res) {
+  merge_all_rst(r)
+}
+
+
