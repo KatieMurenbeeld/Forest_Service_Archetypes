@@ -49,12 +49,17 @@ for(i in 1:length(yr)){
   download.file(url=link, destfile=fname)
 }
 
-# Change in population
+# Change in population (from USDA ERS)
 url <- "https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=3995.5"
 file_name <- "population_estimates_2022.csv"
 
 download_data(url, file_name)
 
+# Change in population (from Census)
+url <- "https://www2.census.gov/programs-surveys/popest/tables/2020-2023/counties/totals/co-est2023-comp.xlsx"
+file_name <- "census_2023_comp_est.xlsx"
+
+download_data(url_file_name)
 # Forest dependency 
 url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2021-0077/RDS-2021-0077.zip"
 file_name <- "forest_depend.zip"
