@@ -142,6 +142,12 @@ file_name <- ""
 
 download_data(url, file_name)
 
+# Forest stand age 1km
+url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2015-0043/RDS-2015-0043_Data_2011.zip"
+file_name <- ""
+
+download_data(url, file_name)
+
 #---Data that needs more in-depth downloading, processing-----------------------
 #---is by subscription only or requires an account with AppEARS (EarthData)-----
 
