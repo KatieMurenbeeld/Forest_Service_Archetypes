@@ -44,7 +44,9 @@ conus_fed <- fed %>%
 rm(fed)
 
 # 3. Set the projection and check for shape validity and empty geometries
-conus_fedp <- st_transform(conus_fed, st_crs(counties))
+ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+#conus_fedp <- st_transform(conus_fed, st_crs(counties))
+conus_fedp <- st_transform(conus_fed, crs(ref_rast))
 identical(st_crs(conus_fedp), st_crs(counties))
 
 ## Make the multisurface into multipolygons
@@ -92,6 +94,20 @@ counties_sub <- counties %>%
 ## save as a shapefile
 write_sf(obj = counties, dsn = paste0(here::here("data/processed/"), "county_fed_gov_coverage_pct", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
+
+# 4.1 Repeat but I want 3km cells and the % of the cell covered by government agency
+# Create an empty raster usng the ref_rast from 00_01_archetype-analysis_download-prep-fire.R
+
+padus_proj_sel <- conus_fedp_val %>%
+  dplyr::select(Mang_Name, Mang_Type, SHAPE)
+percent_fed_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Type")
+percent_fedname_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Name")
+plot(percent_fed_rast)
+plot(percent_fedname_rast)
+
+padus_proj_sf <- st_as_sf(padus_proj_sel)
+
+fed_rast <- rasterize(vect(padus_proj_sf), ref_rast)
 
 # 5. Calculate the Shannon Diversity Index for Federal ownership by county
 
