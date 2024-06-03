@@ -23,8 +23,6 @@ granules <- c("50N_130W", "50N_120W", "50N_110W", "50N_100W", "50N_090W",
               "40N_100W", "40N_090W", "40N_080W", "30N_120W", "30N_110W",
               "30N_100W", "30N_090W", "30N_080W")
 
-#granules <- c("50N_130W", "50N_120W")
-
 # Download the data
 download_forgain <- function(grans){    
   exdir <- here::here("data/original/forest_gain/")
@@ -39,16 +37,11 @@ for (gran in granules){
 download_forgain(gran)
 }
 
-fnames_list <- list.files(here::here("data/original/forest_gain"), 
-                          #pattern = "WHP", 
-                          full.names = TRUE)
+fnames_list <- list.files(here::here("data/original/forest_gain"), full.names = TRUE)
 
 # check the crs and res of the rasters
 # from website This global dataset is divided into 10x10 degree tiles, consisting of seven files per tile. 
 # All files contain unsigned 8-bit values and have a spatial resolution of 1 arc-second per pixel, or approximately 30 meters per pixel at the equator.
-# So I think I can keep the same factor? Could also load in whp rast as a reference raster?
-test_rast <- rast(here::here("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_30N_080W.tif"))
-test_rast
 
 # For next time update this function to aggregate at 3km-3000m (fact = 100) and 1.5km-1500m (fact = 50)
 agg_forgain <- function(ogrst, fac, res){
@@ -83,6 +76,3 @@ merge_all_rst <- function(res){
 for (r in res) {
   merge_all_rst(r)
 }
-
-forgain_rst <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
-plot(forgain_rst)
