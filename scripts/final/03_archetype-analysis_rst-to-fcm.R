@@ -13,6 +13,7 @@ library(exactextractr) # I want this package but cannot seem to install because 
 
 #---Load the data-----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 arch_attri <- rast(here::here("data/processed/arch_attri_2024-05-31.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
 prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
@@ -71,7 +72,7 @@ counties <- counties %>%
   dplyr::select(GEOID, geometry)
 
 # reproject counties to raster
-counties_proj <- st_transform(counties, crs(for_own_rc))
+counties_proj <- st_transform(counties, crs(for_own))
 identical(crs(for_own_rc), st_crs(counties_proj))
 
 # test using exactextractr::frac()
@@ -80,18 +81,43 @@ counties_proj$test_areas <- exact_extract(for_own_rc, counties_proj, "frac")
 pct_pub <- counties_proj$pct_pubforest
 pct_priv <- counties_proj$pct_privforest
 
-counties_pubpriv< - cbind(counties_proj, exact_extract(for_own_rc, counties_proj, "frac"))
+counties_pubpriv <- cbind(counties_proj, exact_extract(for_own_rc, counties_proj, "frac"))
+
+counties_pubpriv_sf <- counties_pubpriv %>%
+  unnest(pct_privforest) # or whatever the column name is
 
 ggplot(counties_proj) + 
   geom_sf(mapping = aes(fill = test_areas$frac_1, color = test_areas$frac_1))
 
 # save the shapefile
-write_sf(obj = counties_proj, dsn = paste0(here::here("data/processed/"), "county_private_forest_pct_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-test_cnt <- st_read(here::here("data/processed/county_private_forest_pct_2024-05-31.shp"))
-saveRDS(counties_proj, file = here::here("data/processed/county_private_forest_pct.rds"))
+#write_sf(obj = counties_proj, dsn = paste0(here::here("data/processed/"), "county_private_forest_pct_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+#test_cnt <- st_read(here::here("data/processed/county_private_forest_pct_2024-05-31.shp"))
+#saveRDS(counties_proj, file = here::here("data/processed/county_private_forest_pct.rds"))
 test_rds <- readRDS(here::here("data/processed/county_private_forest_pct.rds"))
 
-for_own_rc_crop <- crop(for_own_rc, counties_proj[4:5,1], mask = TRUE)
+st_geometry(test_rds) <- "pct_pubforest"
+
+# can use use unnest() from tidyr to get the two fractions into their own columnes
+privforest_sf <- test_rds %>%
+  unnest(pct_privforest)
+
+# double check map
+ggplot(privforest_sf) + 
+  geom_sf(mapping = aes(fill = frac_1, color = frac_1))
+
+# need to re-rasterize the polygons
+privforest_sf_proj <- privforest_sf %>% st_transform(., crs = crs(ref_rast))
+
+# double check the map
+ggplot(privforest_sf_proj) + 
+  geom_sf(mapping = aes(fill = frac_1, color = frac_1))
+
+percent_privfor_rast <- rasterize(vect(privforest_sf), ref_rast, field = "frac_1")
+
+# Then resample the new raster
+privfor_resamp <- resamp(percent_privfor_rast, ref_rast, "bilinear")
+
+pctfor_own_rc_crop <- crop(for_own_rc, counties_proj[4:5,1], mask = TRUE)
 plot(for_own_rc_crop)
 # test out a smaller portion of the data
 test_county <- test_county %>% mutate(area = terra::extract(for_own_rc_crop, counties_proj[2,1], fun = mean, na.rm = TRUE))
@@ -109,7 +135,7 @@ area_counties <- counties_proj %>%
 
 # Check alignment and stack the rasters
 rast_stack <- c(arch_attri, ref_rast, mill_change_resamp, prec_seas, temp_seas, 
-                roughness, trav_time, tree_age_resamp)
+                roughness, trav_time, tree_age_resamp, privfor_resamp)
 
 ## Save the raster
 writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "full_rast_stack_attributes_", Sys.Date(), ".tif"), overwrite = TRUE)
