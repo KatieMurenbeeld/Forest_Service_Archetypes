@@ -10,8 +10,9 @@ library(patchwork)
 library(units)
 library(spdep)
 library(spatstat)
+library(gstat)
 
-#----Distance to mills and change in mill capacity
+#----Distance to mills and Mill Capacity "hotspots"
 # Pseudocode:
 # 1. Load the data (FORISK and county boundaries)
 # 2. Align the data
@@ -38,9 +39,12 @@ counties <- tigris::counties(state = continental.states$state, cb = TRUE)
 conus_mills <- mill_sf %>%
   filter(Region != "Canada West") %>%
   filter(Region != "Canada East") %>%
-  filter(State_Prov %in% continental.states$state) #%>% 
-# need to keep all mills in order to calculate change in mill capacity for mills that have closed
-  #filter(Status == "Open")
+  filter(State_Prov %in% continental.states$state) #%>% # need to keep all mills in order to calculate change in mill capacity for mills that have closed
+#filter(Status == "Open")
+
+# What is the distribution of total wood capacity?
+
+hist(conus_mills$Total_Wood, main = "Distribution of Total Wood Capacity", xlab = "Total Wood Capacity", ylab = "Frequency")
 
 # 2. Align the data
 st_crs(conus_mills)
@@ -75,15 +79,18 @@ which(is.na(conus_mills$millcap_5yr), arr.ind = TRUE)
 nodes <- st_make_grid(counties,
                       n = c(50,50),
                       what = "centers")
-dist <- distance(vect(nodes), vect(conus_mills))
+nodes2 <- st_make_grid(conus_mills,
+                       n = c(50,50),
+                       what = "centers")
+
+# remove mills that have the same lat, lon
+conus_mills_nodeupe <- conus_mills[!duplicated(conus_mills[,22:23]),]
+
+dist <- distance(vect(nodes), vect(conus_mills_nodeupe))
 nearest_conus <- apply(dist, 1, function(x) which(x == min(x)))
-nearest_conus1 <- as.data.frame(nearest_conus[1:2500])
-nearest_conus2 <- nearest_conus1 %>% filter(row_number() == 2)
-#nearest_conus3 <- as.array(nearest_conus2)
-nearest <- as.numeric(as.vector(nearest_conus2[1,]))
-millcap5.nn <- conus_mills$millcap_5yr[nearest]
-currcap.nn <- conus_mills$Current_Ca[nearest]
-totwood.nn <- conus_mills$Total_Wood[nearest]
+millcap5.nn <- conus_mills$millcap_5yr[nearest_conus]
+currcap.nn <- conus_mills$Current_Ca[nearest_conus]
+totwood.nn <- conus_mills$Total_Wood[nearest_conus]
 preds <- st_as_sf(nodes)
 preds$millcap5 <- millcap5.nn
 preds$currcap <- currcap.nn
@@ -106,14 +113,23 @@ zmc5sf05 <- interpolate(preds.rast, mc5sf05, debug.level=0, fun=interpolate_gsta
 zmc5sf1 <- interpolate(preds.rast, mc5sf1, debug.level=0, fun=interpolate_gstat, crs=crs(preds.rast), index=1)
 zmc5sf2 <- interpolate(preds.rast, mc5sf2, debug.level=0, fun=interpolate_gstat, crs=crs(preds.rast), index=1)
 
-# Crop the mill capacity change predictions to the counties data. These are rasters.
-zmc5sf05_crop <- crop(zmc5sf05, counties, mask = TRUE) 
-zmc5sf1_crop <- crop(zmc5sf1, counties, mask = TRUE)
-zmc5sf2_crop <- crop(zmc5sf2, counties, mask = TRUE)
-
 # 3. Rasterize the data using the raster created in the 00_archetype-analysis_download-prep-fire.R
-
+# Resample and crop the mill capacity change predictions to the reference raster.
+# created in the 00_archetype-analysis_download-prep-fire.R
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif")) 
+
+zmc5sf05_proj <- project(zmc5sf05, ref_rast)
+zmc5sf05_resamp <- resample(zmc5sf05_proj, ref_rast, "bilinear")
+zmc5sf05_crop <- crop(zmc5sf05_resamp, ref_rast, mask = TRUE) 
+
+zmc5sf1_proj <- project(zmc5sf1, ref_rast)
+zmc5sf1_resamp <- resample(zmc5sf1_proj, ref_rast, "bilinear")
+zmc5sf1_crop <- crop(zmc5sf1_resamp, ref_rast, mask = TRUE)
+
+zmc5sf2_proj <- project(zmc5sf2, ref_rast)
+zmc5sf2_resamp <- resample(zmc5sf2_proj, ref_rast, "bilinear")
+zmc5sf2_crop <- crop(zmc5sf2_resamp, ref_rast, mask = TRUE)
+
 mill_proj <- conus_mills %>% st_transform(., crs = crs(ref_rast))
 millchange_rast <- rasterize(vect(mill_proj), ref_rast, field = "change_millcap")
 
@@ -123,5 +139,3 @@ writeRaster(millchange_rast, here::here("data/processed/millchange_cap.tif"), ov
 writeRaster(zmc5sf05_crop, here::here("data/processed/millchangecap_interp-05.tif"), overwrite = TRUE)
 writeRaster(zmc5sf1_crop, here::here("data/processed/millchangecap_interp-1.tif"), overwrite = TRUE)
 writeRaster(zmc5sf2_crop, here::here("data/processed/millchangecap_interp-2.tif"), overwrite = TRUE)
-
-
