@@ -28,27 +28,6 @@ download_data <- function(url, file_name) {
 
 #---Download csv data-----------------------------------------------------------
 
-# Partisan sorting, need to download from website
-## Still need way to ref spatially!!
-
-#url <- "https://dataverse.harvard.edu/file.xhtml?fileId=8165593&version=3.0#"
-#file_name <- "partisan_sorting.csv"
-
-#download_data(url, file_name)
-
-# League of Conservation Voters
-rt <- "http://scorecard.lcv.org/exports/"
-yr <- seq(from=2018,to=2019,by=1)
-hs <- "-house"
-fl <- "-scorecard-grid-export.csv"
-
-for(i in 1:length(yr)){
-  y <- yr[i]
-  link <- paste0(rt,y,hs,fl)
-  fname <- paste0(here::here("data/original/"),y,hs,".csv")
-  download.file(url=link, destfile=fname)
-}
-
 # Change in population (from USDA ERS)
 url <- "https://www.ers.usda.gov/webdocs/DataFiles/48747/PopulationEstimates.csv?v=3995.5"
 file_name <- "population_estimates_2022.csv"
@@ -60,6 +39,7 @@ url <- "https://www2.census.gov/programs-surveys/popest/tables/2020-2023/countie
 file_name <- "census_2023_comp_est.xlsx"
 
 download_data(url_file_name)
+
 # Forest dependency 
 url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2021-0077/RDS-2021-0077.zip"
 file_name <- "forest_depend.zip"
@@ -102,13 +82,6 @@ file_name = ""
 
 download_data(url, file_name)
 
-# FAA National Tree Growth Database
-url <- "https://www.airporttech.tc.faa.gov/DesktopModules/EasyDNNNews/DocumentDownload.ashx?portalid=0&moduleid=3682&articleid=2870&documentid=3042"
-file_name = "faa_tree-growth-ecoregions.zip"
-
-download_data(url, file_name)
-unzip(paste0(here::here("data/original/"), file_name),  exdir = here::here("data/original/"))
-
 # Climate and Economic Justice Screening Tool
 url <- "https://static-data-screeningtool.geoplatform.gov/data-versions/1.0/data/score/downloadable/1.0-shapefile-codebook.zip"
 file_name <- ""
@@ -120,24 +93,6 @@ download_data(url, file_name)
 
 # Forest Ownership
 url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2020-0044/RDS-2020-0044.zip"
-file_name <- ""
-
-download_data(url, file_name)
-
-# National Land Cover Data 2021
-#url <- "https://s3-us-west-2.amazonaws.com/mrlc/nlcd_2021_land_cover_l48_20230630.zip"
-#file_name <- ""
-
-#download_data(url, file_name)
-
-# Land Cover Change Index
-#url <- "https://s3-us-west-2.amazonaws.com/mrlc/nlcd_2001_2021_land_cover_change_index_l48_20230630.zip"
-#file_name <- ""
-
-#download_data(url, file_name)
-
-# Forest Type
-url <- "https://data.fs.usda.gov/geodata/rastergateway/forest_type/conus_forest-type.zip"
 file_name <- ""
 
 download_data(url, file_name)
