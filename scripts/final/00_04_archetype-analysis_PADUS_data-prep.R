@@ -15,8 +15,10 @@ library(units)
 ## The download requires one to pass a CAPTCHA challenge 
 
 # 2. Load the data and filter for the contiguous US (CONUS)
+projection = "epsg:5070"
 
-## Get list of states in the CONUS
+
+ ## Get list of states in the CONUS
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
 
@@ -46,11 +48,13 @@ rm(fed)
 # 3. Set the projection and check for shape validity and empty geometries
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 #conus_fedp <- st_transform(conus_fed, st_crs(counties))
-conus_fedp <- st_transform(conus_fed, crs(ref_rast))
-identical(st_crs(conus_fedp), st_crs(counties))
+conus_fedp <- conus_fed %>% st_transform(., crs = projection)
+#identical(st_crs(conus_fedp), crs(ref_rast))
+#identical(st_crs(conus_fedp), st_crs(counties))
 
 ## Make the multisurface into multipolygons
 conus_fedp <- conus_fedp %>% st_cast("MULTIPOLYGON")
+#conus_fed <- conus_fed %>% st_cast("MULTIPOLYGON")
 
 ## Turn off using spherical geometry
 sf_use_s2(FALSE)
@@ -96,19 +100,108 @@ write_sf(obj = counties, dsn = paste0(here::here("data/processed/"), "county_fed
 print("new shapefile written")
 
 # 4.1 Repeat but I want 3km cells and the % of the cell covered by government agency
-# Create an empty raster usng the ref_rast from 00_01_archetype-analysis_download-prep-fire.R
+# Create grid cells as a shapefile for the bounding box and crs of the ref raster
+# Then calculate the area of padus polygons overlapping the grid cells
+#counties_p <- counties %>% st_transform(., crs = crs(ref_rast))
+#----testing % area fed and % area fed type
+ref_rast_proj <- project(ref_rast, "epsg:5070")
+counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
+
+id_counties <- counties_proj %>%
+  filter(STUSPS == "ID")
+
+id_cells <- st_make_grid(id_counties, cellsize = 30000)
+id_cells <- st_sf(id_cells) 
+
+id_cells <- id_cells %>% 
+  mutate(GRIDCELL_REFID = as.character(row_number()))
+
+plot(st_geometry(id_counties))
+plot(id_cells, add = TRUE)
+
+
+
+conus_cells <- st_make_grid(id_counties, n = c(966, 1539), crs = crs(ref_rast), what = "polygons")
+#conus_fedp_val$Mang_Name <-  
+  
+conus_fed_name <- conus_fedp_val %>%
+  dplyr::select(Mang_Name)
+
+conus_fed_type <- conus_fedp_val %>%
+  dplyr::select(Mang_Type)
+
+conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = "epsg:5070") %>%
+  st_cast(., to = "POLYGON")
+conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = "epsg:5070") %>%
+  st_cast(., to = "POLYGON")
+
+id_test_int <- st_intersection(id_cells, conus_fed_name_proj)
+id_test_int <- id_test_int %>%
+  mutate(area = st_area(.)) %>%
+  mutate(percent_area = drop_units(area) / (30000*30000))
+
+id_final_test <- id_test_int %>% 
+  #as_tibble() %>% 
+  group_by(GRIDCELL_REFID, Mang_Name) %>% 
+  summarize(area = sum(area))
+
+#----
+attArea <- id_test_int %>% 
+  mutate(area = st_area(.) %>% as.numeric())
+
+attArea %>% 
+  as_tibble() %>% 
+  group_by(field, soil) %>% 
+  summarize(area = sum(area))
+
+id_test <- st_sf(id_test_int)
+
+id_test$area <- st_area(id_test)
+
+id_test_rast <- rasterize(vect(id_test_int), ref_rast, field = "percent_area")
+plot(id_test_rast)
+
+id_test %>% 
+  as_tibble() %>% 
+  group_by(id_cells, conus_fed_name_proj) %>% 
+  summarize(area = sum(area))
+
+id_test_area <- id_test_int %>%
+  mutate(area = st_area())
+
+id_test_int$area <- st_area(id_test_int)
+
+conus_fed_type <- conus_fedp_val %>%
+  dplyr::select(Mang_Type)
+  
+pi_fed_name <- st_intersection(conus_cells, conus_fed_name)
+
+pi_fed_type <- st_intersection(conus_cells, conus_fed_type) %>%
+  mutate(intersect_area = st_area(.) %>% as.numeric())
+
+ref_rast_proj <- project(ref_rast, "epsg:5070")
+counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
+
+pi_2 <- pi %>%
+  mutate(area = st_area(.) %>% as.numeric())
+
+
 
 padus_proj_sel <- conus_fedp_val %>%
   dplyr::select(Mang_Name, Mang_Type, SHAPE)
+padus_proj_sel$percent_calc <- as.numeric(1)
 percent_fed_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Type")
 percent_fedname_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Name")
 plot(percent_fed_rast)
 plot(percent_fedname_rast)
 
+percent_test <- rasterize(vect(padus_proj_sel), ref_rast, field = "percent_calc")
+plot(percent_test)
+
 padus_proj_sf <- st_as_sf(padus_proj_sel)
 
 fed_rast <- rasterize(vect(padus_proj_sf), ref_rast)
-
+plot(fed_rast)
 # 5. Calculate the Shannon Diversity Index for Federal ownership by county
 
 ## Calculate area and tidy up
