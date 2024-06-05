@@ -12,6 +12,7 @@ library(tigris) # needed for state/CONUS boundaries
 library(dplyr) # for manipulating dataframes 
 library(dismo) # needed to calculate biovars
 
+projection <- "epsg:5070"
 #proj <- "+proj=aea +lat_1=20 +lat_2=60 +lat_0=40 +lon_0=-96 +x_0=0 +y_0=0 +ellps=GRS80 +datum=NAD83"
 
 # Steps:
@@ -38,19 +39,43 @@ states <- states %>%
   filter(STUSPS != "AK" & STUSPS != "HI" & STUSPS != "DC") %>%
   filter(GEOID < 60)
 
+# Set projection for states
+states_proj <- st_transform(states, projection)
+
 ## Function to crop to states extents, then reproject and crop again with mask = TRUE
 
-crop_project <- function(raster, states){
+r_tt_crop1 <- crop(r_tt, ext(states))
+r_tt_proj <- project(r_tt_crop1, projection)
+r_tt_crop <- crop(r_tt_proj, states_proj, mask = TRUE)
+
+crop_project <- function(raster, states, states_proj){
   r_crop <- crop(raster, ext(states)) # First, crop to the extents of states
-  tmp <- project(r_crop, states) # Then, reproject the raster to crs of states
-  tmp_conus <- crop(tmp, states, mask = TRUE) # Finally, crop again with mask = TRUE
+  tmp <- project(r_crop, projection) # Then, reproject the raster to crs of states
+  tmp_conus <- crop(tmp, states_proj, mask = TRUE) # Finally, crop again with mask = TRUE
 }
 
-r_prec_conus <- crop_project(r_prec, states)
-r_ele_conus <- crop_project(r_ele, states)
-r_tt_conus <- crop_project(r_tt, states)
-r_tmin_conus <- crop_project(r_tmin, states)
-r_tmax_conus <- crop_project(r_tmax, states)
+r_prec_conus <- crop_project(r_prec, states, states_proj)
+r_ele_conus <- crop_project(r_ele, states, states_proj)
+r_tt_conus <- crop_project(r_tt, states, states_proj)
+r_tmin_conus <- crop_project(r_tmin, states, states_proj)
+r_tmax_conus <- crop_project(r_tmax, states, states_proj)
+
+# check the plots
+plot(r_prec_conus)
+plot(r_ele_conus)
+plot(r_tt_conus)
+plot(r_tmin_conus)
+plot(r_tmax_conus)
+
+# calculate elevation roughness and biovars
+rough_conus <- terrain(r_ele_conus, v = "roughness")
+
+bio_conus <- biovars(brick(r_prec_conus), brick(r_tmin_conus), brick(r_tmax_conus))
+
+r_temp_seas_conus <- bio_conus$bio4
+r_prec_seas_conus <- bio_conus$bio15
+
+# 3. Aggregate to 3km resolution
 
 # 3. Resample to 1.5km and 3km resolution
 ## Using the WHP raster as a reference
