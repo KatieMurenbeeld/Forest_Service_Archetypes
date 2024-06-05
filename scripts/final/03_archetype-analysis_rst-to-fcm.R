@@ -11,8 +11,10 @@ library(viridis)
 library(raster)
 library(exactextractr) # I want this package but cannot seem to install because I was spelling it wrong :-/
 
+projection <- "epsg:5070"
+
 #---Load the data-----
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+whp_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 arch_attri <- rast(here::here("data/processed/arch_attri_2024-05-31.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
@@ -20,23 +22,47 @@ prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
 temp_seas <- rast(here::here("data/processed/temp_seas_3000m.tif"))
 roughness <- rast(here::here("data/processed/roughness_3000m.tif"))
 trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
-for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
 
 ## original rasters
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
+for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
+
+# reproject all rasters
+
+whp_rast_proj <- project(whp_rast, projection)
+forgain_rast_proj <- project(forgain_rast, projection)
+arch_attri_proj <- project(arch_attri, projection)
+mill_change_cap_proj <- project(mill_change_cap, projection)
+prec_seas_proj <- project(prec_seas, projection)
+temp_seas_proj <- project(temp_seas, projection)
+roughness_proj <- project(roughness, projection)
+travel_time_proj <- project(trav_time, projection)
 
 #---Process the original rasters----
 
-identical(crs(ref_rast), crs(tree_age))
-identical(crs(ref_rast), crs(for_own))
+# reproject and aggregate the og rasters
+tree_age_proj <- project(tree_age, projection)
+tree_age_agg <- aggregate(tree_age_proj, fact = 3, fun = "mean", na.rm = TRUE)
+
+for_own_agg <- aggregate(for_own, fact = 100, fun = "near", na.rm = TRUE)
+for_own_proj <- project(for_own, projection)
 
 resamp <- function(raster, ref_raster, method){
   rast_proj <- project(raster, crs(ref_raster))
-  rast_resamp <- resample(rast_proj, ref_raster, method)
+  rast_resamp <- resample(rast_proj, ref_raster, method, threads = TRUE)
 }
 
-tree_age_resamp <- resamp(tree_age, ref_rast, "bilinear")
-mill_change_resamp <- resamp(mill_change_cap, ref_rast, "bilinear")
+for_own_resamp <- resamp(for_own, whp_rast_proj, "near")
+
+tree_age_resamp <- resamp(tree_age_proj, whp_rast_proj, "bilinear")
+plot(tree_age_proj)
+plot(tree_age_agg)
+plot(tree_age_resamp)
+saveRDS(tree_age_proj, file = here::here("data/processed/tree_age_proj.rds"))
+saveRDS(tree_age_agg, file = here::here("data/processed/tree_age_agg.rds"))
+saveRDS(tree_age_resamp, file = here::here("data/processed/tree_age_resamp.rds"))
+
+mill_change_resamp <- resamp(mill_change_cap, whp_rast_proj, "bilinear")
 
 # Before resampling forest ownership calculate the percent area that is private
 ## reclassify the raster
@@ -48,6 +74,27 @@ rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 
 ### reclassify using matrix, make NA = 0
 for_own_rc <- classify(for_own, rclmat, include.lowest=TRUE, others = 0)
+plot(for_own)
+plot(for_own_rc)
+for_own_rc_agg <- aggregate(for_own_rc, fact = 100, fun = "mean", na.rm = TRUE)
+for_own_rc_agg_naf <- aggregate(for_own_rc, fact = 100, fun = "mean", na.rm = FALSE)
+for_own_rc_resamp <- resamp(for_own_rc, whp_rast_proj, "near") # this took about 2 hours to run. Reprojecting the forest owner tif seems to take a very long time. 
+for_own_rc_resamp_ave <- resamp(for_own_rc, whp_rast_proj, "average")
+saveRDS(for_own_rc_resamp, file = here::here("data/processed/for_own_rc_resamp.rds"))
+saveRDS(for_own_rc_resamp_ave, file = here::here("data/processed/for_own_rc_resamp_ave.rds"))
+saveRDS(for_own_rc, file = here::here("data/processed/for_own_rc.rds"))
+saveRDS(for_own_rc_agg, file = here::here("data/processed/for_own_rc_agg.rds"))
+saveRDS(for_own_rc_agg_naf, file = here::here("data/processed/for_own_rc_agg_naf.rds"))
+
+for_own_rc_agg
+for_own_rc_agg_naf
+for_own_rc
+for_own_rc_resamp
+plot(for_own_rc_agg)
+plot(for_own_rc_agg_naf)
+plot(for_own_rc)
+plot(for_own_rc_resamp)
+
 #for_own_rc[is.na(for_own_rc[])] <- 0 
 
 ### double check plot
