@@ -103,10 +103,12 @@ print("new shapefile written")
 # Create grid cells as a shapefile for the bounding box and crs of the ref raster
 # Then calculate the area of padus polygons overlapping the grid cells
 #counties_p <- counties %>% st_transform(., crs = crs(ref_rast))
-#----testing % area fed and % area fed type
+#----testing % area fed and % area fed type----
 ref_rast_proj <- project(ref_rast, "epsg:5070")
 counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
 
+
+#----test with idaho counties and 30kmx30km grid cell----
 id_counties <- counties_proj %>%
   filter(STUSPS == "ID")
 
@@ -144,6 +146,47 @@ id_final_test <- id_test_int %>%
   #as_tibble() %>% 
   group_by(GRIDCELL_REFID, Mang_Name) %>% 
   summarize(area = sum(area))
+
+#----try for conus (large cells first)----
+conus_cells <- st_make_grid(counties_proj, cellsize = 100000)
+
+# check the maps
+plot(conus_cells)
+plot(st_geometry(counties_proj), add = TRUE)
+
+# make into sf
+conus_cells <- st_sf(conus_cells) 
+
+# add unique cell id
+conus_cells <- conus_cells %>% 
+  mutate(GRIDCELL_REFID = as.character(row_number()))
+
+# intersection for all Fed fee lands
+conus_test_ftype <- st_intersection(conus_fed_type_proj, conus_cells)
+
+conus_test_ftype <- conus_test_ftype %>%
+  mutate(area = st_area(.)) %>%
+  mutate(percent_area = drop_units(area) / (100000*100000))
+
+# rasterize
+## Create a template raster for the shapefiles
+XMIN <- ext(conus_cells)$xmin
+XMAX <- ext(conus_cells)$xmax
+YMIN <- ext(conus_cells)$ymin
+YMAX <- ext(conus_cells)$ymax
+aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
+cellSize <- 100000
+NCOLS <- as.integer((XMAX-XMIN)/cellSize)
+NROWS <- as.integer(NCOLS * aspectRatio)
+templateRas <- rast(ncol=NCOLS, nrow=NROWS, 
+                    xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
+                    vals=1, crs=projection)
+
+conus_test_ftype_rast <- rasterize(conus_test_ftype, templateRas, field = "percent_area")
+# check the map
+plot(conus_test_ftype_rast) # I want 0 values where there is no Fed area...
+plot(st_geometry(counties_proj), add = TRUE)
+plot(conus_test_ftype_rast, add=TRUE)
 
 #----
 attArea <- id_test_int %>% 
