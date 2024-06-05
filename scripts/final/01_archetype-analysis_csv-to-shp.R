@@ -7,7 +7,8 @@ library(readxl)
 
 ## Load the csv files
 forest_depend <- read_csv(paste0(here::here("data/original/Data/County-Forest_Dep_Comm_Capital.csv")))
-del_pop <- read_csv(paste0(here::here("data/original/population_estimates_2022.csv")))
+del_pop_ers <- read_csv(paste0(here::here("data/original/population_estimates_2022.csv")))
+del_pop_cen <- read_excel(here::here("data/original/.xlsx"))
 econ_bea <- read.csv(paste0(here::here("data/original/CAINC6N__ALL_AREAS_2001_2022.csv")))
 bric <- read_excel(paste0(here::here("data/original/bric2020_us.xlsx")))
 
@@ -35,22 +36,22 @@ bric_2020 <- bric %>%
   dplyr::select("GEOID", "COMM CAPITAL") %>%
   rename("FIPS" = "GEOID")
 
-## Change in Population
-delpop <- del_pop %>%
+## Change in Population, using census data
+delpop_cen <- del_pop_cen %>%
+  filter(Attribute == "") %>%
+  dplyr::select(FIPStxt, Value) %>%
+  rename("FIPS" = "FIPStxt", "" = "delpop_cen")
+
+## Change in Population, using USDS-ERS data
+delpop_ers <- del_pop_ers %>%
   filter(Attribute == "R_NET_MIG_2021") %>%
   dplyr::select(FIPStxt, Value) %>%
-  rename("FIPS" = "FIPStxt", "R_NET_MIG_2021" = "Value")
-
-## Current Population
-#pop_2020 <- del_pop %>%
-#  filter(Attribute == "CENSUS_2020_POP") %>%
-#  dplyr::select(FIPStxt, Value) %>%
-#  rename("FIPS" = "FIPStxt", "CENSUS_2020_POP" = "Value") 
+  rename("FIPS" = "FIPStxt", "R_NET_MIG_2021" = "delpop_ers")
 
 ## Forest Dependence Variables
 fordep <- forest_depend %>%
-  dplyr::select(fips, pct.pay, pct.forest) %>%
-  rename("FIPS" = "fips")
+  dplyr::select(fips, pct.pay) %>%
+  rename("FIPS" = "fips", "pct.pay" = "pct_forpay")
 
 # Economic Data
 econ_bea$Description <- trimws(econ_bea$Description)
