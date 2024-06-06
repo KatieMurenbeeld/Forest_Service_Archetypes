@@ -19,7 +19,7 @@ library(units)
 projection = "epsg:5070"
 
 
- ## Get list of states in the CONUS
+## Get list of states in the CONUS
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
 
@@ -47,8 +47,7 @@ conus_fed <- fed %>%
 rm(fed)
 
 # 3. Set the projection and check for shape validity and empty geometries
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
-ref_rast_proj <- project(ref_rast, projection)
+
 #conus_fedp <- st_transform(conus_fed, st_crs(counties))
 conus_fedp <- conus_fed %>% st_transform(., crs = projection)
 #identical(st_crs(conus_fedp), crs(ref_rast))
@@ -72,7 +71,7 @@ all(st_is_empty(conus_fedp_val))
 #conus_fedp_val_noempty = conus_fedp_val[!st_is_empty(conus_fedp_val),]
 #st_is_empty(conus_fedp_val_noempty)
 
-# 4. Calculate the area of overlapping Fed and county polygons (maybe I didn't need to figure out the rasterization yet...)
+# 4. Calculate the area of overlapping Fed and county polygons (maybe I didn't need to figure out the rasterization yet...)----
 ## from stack overflow https://gis.stackexchange.com/questions/362466/calculate-percentage-overlap-of-2-sets-of-polygons-in-r
 
 ## Calculate area and tidy up
@@ -100,7 +99,7 @@ counties_sub <- counties %>%
 ## save as a shapefile
 write_sf(obj = counties, dsn = paste0(here::here("data/processed/"), "county_fed_gov_coverage_pct", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
-
+#----
 # 4.1 Repeat but I want 3km cells and the % of the cell covered by government agency
 # Create grid cells as a shapefile for the bounding box and crs of the ref raster
 # Then calculate the area of padus polygons overlapping the grid cells
@@ -108,8 +107,9 @@ print("new shapefile written")
 
 #counties_p <- counties %>% st_transform(., crs = crs(ref_rast))
 #----testing % area fed and % area fed type----
-ref_rast_proj <- project(ref_rast, "epsg:5070")
-counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
+ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast_proj <- project(ref_rast, projection)
+counties_proj <- counties %>% st_transform(., crs = projection)
 
 
 #----test with idaho counties and 30kmx30km grid cell----
@@ -122,7 +122,20 @@ id_cells_sf <- st_sf(id_cells_sf)
 id_cells <- id_cells_sf %>% 
   dplyr::mutate(GRIDCELL_REFID = as.character(row_number())) %>%
   dplyr::mutate(test_area = 0)
-  
+
+## Create a template raster for the shapefiles
+XMIN <- ext(id_cells)$xmin
+XMAX <- ext(id_cells)$xmax
+YMIN <- ext(id_cells)$ymin
+YMAX <- ext(id_cells)$ymax
+aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
+cellSize <- 30000
+NCOLS <- as.integer((XMAX-XMIN)/cellSize)
+NROWS <- as.integer(NCOLS * aspectRatio)
+id_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
+                     xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
+                     vals=1, crs=projection)
+
 conus_fed_name <- conus_fedp_val %>%
   dplyr::select(Mang_Name)
 
@@ -134,62 +147,40 @@ conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = "epsg:5070") #%>
 conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = "epsg:5070") #%>%
   #st_cast(., to = "POLYGON")
 
+# for all Federal agencies need to union first otherwise I got >1.00 percent_area
+id_fed_union <- conus_fed_type_proj %>%
+  st_crop(., id_cells) %>%
+  st_union(.)
+
+plot(st_geometry(id_fed_union))
+
+id_fed_uni_int <- st_intersection(id_cells, id_fed_union)
+id_fed_uni_int <- id_fed_uni_int %>%
+  mutate(area = st_area(.)) %>%
+  mutate(percent_area = drop_units(area) / (30000*30000))
+id_fed_uni_rast <- rasterize(id_fed_uni_int, id_cells_rst, field = "percent_area")
+plot(id_fed_uni_rast)
+plot(st_geometry(id_cells), add = TRUE)
+plot(st_geometry(id_counties), add = TRUE)
+
 # for different Federal agencies
-id_test_int <- st_intersection(id_cells, conus_fed_name_proj)
+id_fed_name_int <- st_intersection(id_cells, conus_fed_name_proj)
 #id_test_intersect <- st_intersects(id_cells, conus_fed_name_proj)
-id_test_int <- id_test_int %>%
+id_fed_name_int <- id_fed_name_int %>%
   mutate(area = st_area(.)) %>%
   mutate(percent_area = drop_units(area) / (30000*30000))
 
-id_final_test <- id_test_int %>% 
+id_fed_all_areas <- id_fed_name_int %>% 
   #as_tibble() %>% 
   group_by(GRIDCELL_REFID, Mang_Name) %>% 
   summarize(area = sum(area)) %>%
   mutate(percent_area = drop_units(area) / (30000*30000))
 
-# for all Federal agencies need to union first otherwise I got >1.00 percent_area
-id_fed_comb <- conus_fed_type_proj %>%
-  st_crop(., id_cells) %>%
-  st_union(.)
-plot(st_geometry(id_fed_comb))
-#id_fed_comb <- st_combine(conus_fed_type_proj)
-id_fed_comb_int <- st_intersection(id_cells, id_fed_comb)
-id_fed_comb_int <- id_fed_comb_int %>%
-  mutate(area = st_area(.)) %>%
-  mutate(percent_area = drop_units(area) / (30000*30000))
-id_test_comb_rast <- rasterize(id_fed_comb_int, id_cells_rst, field = "percent_area")
-plot(id_test_comb_rast)
-
-id_final_comb <- id_fed_comb_int %>% 
-  #as_tibble() %>% 
-  group_by(GRIDCELL_REFID) %>% 
-  summarize(area = sum(area)) %>%
-  mutate(percent_area = drop_units(area) / (30000*30000))
-id_final_comb_rast <- rasterize(id_final_comb, id_cells_rst, field = "percent_area")
-plot(id_final_comb_rast)
-
-
-id_type_int <- st_intersection(id_cells, conus_fed_type_proj)
-id_type_int <- id_type_int %>%
-  mutate(area = st_area(.)) %>%
-  mutate(percent_area = drop_units(area) / (30000*30000))
-
-id_final_type <- id_type_int %>% 
-  #as_tibble() %>% 
-  group_by(GRIDCELL_REFID, Mang_Type) %>% 
-  summarize(area = sum(area)) %>%
-  mutate(percent_area = drop_units(area) / (30000*30000))
-
-
-
-#id_test_ext <- extract(id_cells_rst, conus_fed_name_proj, fun = "mean", method = "bilinear",
-#                       exact = TRUE)
-
-id_test_blm <- id_final_test %>%
+id_test_blm <- id_fed_all_areas %>%
   filter(Mang_Name == "BLM")
-id_test_usfs <- id_final_test %>%
+id_test_usfs <- id_fed_all_areas %>%
   filter(Mang_Name == "USFS")
-id_test_nps <- id_final_test %>%
+id_test_nps <- id_fed_all_areas %>%
   filter(Mang_Name == "NPS")
 
 id_test_blm_rast <- rasterize(id_test_blm, id_cells_rst, field = "percent_area")
@@ -202,20 +193,30 @@ plot(st_geometry(id_counties), add=TRUE)
 plot(id_test_nps_rast)
 plot(st_geometry(id_counties), add=TRUE)
 
-## Create a template raster for the shapefiles
-XMIN <- ext(id_cells)$xmin
-XMAX <- ext(id_cells)$xmax
-YMIN <- ext(id_cells)$ymin
-YMAX <- ext(id_cells)$ymax
-aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
-cellSize <- 30000
-NCOLS <- as.integer((XMAX-XMIN)/cellSize)
-NROWS <- as.integer(NCOLS * aspectRatio)
-id_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
-                    xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
-                    vals=1, crs=projection)
+# Calculate the Shannon Evenness
+id_fed_all_areas_prop <- id_fed_all_areas %>% 
+  mutate(step1 = -percent_area * log(percent_area))
+#id_fed_all_areas_prop$step1[is.na(id_fed_all_areas_prop$step1)] <- 0
 
+id_fed_rich <- id_fed_all_areas %>%
+  group_by(., GRIDCELL_REFID) %>%
+  summarise(., numfed = n())
 
+id_shannon <- id_fed_all_areas_prop %>% 
+  group_by(., GRIDCELL_REFID) %>% 
+  summarise(., numfed = n(), 
+            H = sum(step1),
+            fedarea = sum(unique(drop_units(area))),
+            E = H/log(fedarea))
+
+id_shan_E_rast <- rasterize(id_shannon, id_cells_rst, field = "E")
+id_shan_rich_rast <- rasterize(id_shannon, id_cells_rst, field = "numfed")
+
+plot(id_shan_E_rast)
+plot(st_geometry(id_counties), add = TRUE)
+
+plot(id_shan_rich_rast)
+plot(st_geometry(id_counties), add = TRUE)
 
 # I want to make the different options of Mang_Name into separate bands or layers within the raster?
 # Keep as sf to calculate Shannon evenness
