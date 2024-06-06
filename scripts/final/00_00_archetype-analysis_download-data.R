@@ -103,6 +103,12 @@ file_name <- ""
 
 download_data(url, file_name)
 
+# USFS Tree Canopy Cover 2016 CONUS
+url <- "https://s3-us-west-2.amazonaws.com/mrlc/nlcd_tcc_CONUS_2016_v2021-4.zip"
+file_name <- ""
+
+download_data(url, file_name)
+
 #---Data that needs more in-depth downloading, processing-----------------------
 #---is by subscription only or requires an account with AppEARS (EarthData)-----
 
