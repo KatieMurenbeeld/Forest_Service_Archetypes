@@ -218,22 +218,6 @@ plot(st_geometry(id_counties), add = TRUE)
 plot(id_shan_rich_rast)
 plot(st_geometry(id_counties), add = TRUE)
 
-# I want to make the different options of Mang_Name into separate bands or layers within the raster?
-# Keep as sf to calculate Shannon evenness
-id_test_fname_rast <- rasterize(id_final_test, id_cells_rst, field = "percent_area")
-id_test_ftype_rast <- rasterize(id_final_type, id_cells_rst, field = "percent_area")
-# id_final_type has a few places with slightly >1.00 which shouldn't happen, 
-# but overall this gave me the type of results I was looking for
-
-id_test_fname_rast
-id_test_ftype_rast
-
-plot(id_test_fname_rast)
-plot(st_geometry(id_counties), add = TRUE)
-
-plot(id_test_ftype_rast)
-plot(st_geometry(id_counties), add = TRUE)
-
 #----try for conus (large cells first)----
 conus_cells <- st_make_grid(counties_proj, cellsize = 100000)
 
