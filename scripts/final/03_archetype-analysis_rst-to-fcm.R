@@ -146,9 +146,12 @@ id_cells_frac_rast <- rasterize(id_cells_frac, id_cells_rst, field = "frac_1")
 id_cells_resamp <- resample(for_own_rc_id, id_cells_rst) # I think this is what I want
 # but I need the white areas to be filled with 0s
 
-plot(id_cells_frac_rast)
-plot(id_cells_resamp)
+# the reclassified original data 0 = public foresr and 1 = private forest
 plot(for_own_rc_id)
+# using exact_extract and then re-rasterizing 
+plot(id_cells_frac_rast)
+# using resample with a template raster
+plot(id_cells_resamp)
 
 #------
 for_own_rc_agg <- aggregate(for_own_rc, fact = 100, fun = "mean", na.rm = TRUE)
