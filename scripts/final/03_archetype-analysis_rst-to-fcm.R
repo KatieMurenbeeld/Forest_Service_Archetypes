@@ -1,4 +1,6 @@
 ## some code came from https://jeremygelb.github.io/geocmeans/articles/web_vignettes/rasters.html
+## Edit this script so that it is for processing the rasters and making a raster stack
+## the fcm bit can go in a separate script
 
 library(tidyverse)
 library(terra)
@@ -24,35 +26,46 @@ roughness <- rast(here::here("data/processed/roughness_3000m.tif"))
 trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
 
 ## original rasters
+tree_cover <- rast(here::here("data/original/nlcd_tcc_CONUS_2016_v2021-4.tif"))
 tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
 for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
 
-# reproject all rasters
+# reproject whp_rast which will be used as the reference raster
 
 whp_rast_proj <- project(whp_rast, projection)
-forgain_rast_proj <- project(forgain_rast, projection)
-arch_attri_proj <- project(arch_attri, projection)
-mill_change_cap_proj <- project(mill_change_cap, projection)
-prec_seas_proj <- project(prec_seas, projection)
-temp_seas_proj <- project(temp_seas, projection)
-roughness_proj <- project(roughness, projection)
-travel_time_proj <- project(trav_time, projection)
 
-#---Process the original rasters----
-
-# reproject and aggregate the og rasters
-tree_age_proj <- project(tree_age, projection)
-tree_age_agg <- aggregate(tree_age_proj, fact = 3, fun = "mean", na.rm = TRUE)
-
-for_own_agg <- aggregate(for_own, fact = 100, fun = "near", na.rm = TRUE)
-for_own_proj <- project(for_own, projection)
-
+# Create a resample function
 resamp <- function(raster, ref_raster, method){
   rast_proj <- project(raster, crs(ref_raster))
   rast_resamp <- resample(rast_proj, ref_raster, method, threads = TRUE)
 }
 
-for_own_resamp <- resamp(for_own, whp_rast_proj, "near")
+forgain_resamp <- resamp(forgain_rast, whp_rast_proj, "bilinear")
+forgain_resamp_crop <- crop(forgain_resamp, whp_rast_proj, mask = TRUE)
+arch_attri_resamp <- resamp(arch_attri, whp_rast_proj, "bilinear")
+mill_change_resamp <- resamp(mill_change_cap, whp_rast_proj, "bilinear")
+prec_seas_resamp <- resamp(prec_seas, whp_rast_proj, "bilinear")
+temp_seas_resamp <- resamp(temp_seas, whp_rast_proj, "bilinear")
+roughness_resamp <- resamp(roughness, whp_rast_proj, "bilinear")
+trav_time_resamp <- resamp(trav_time, whp_rast_proj, "bilinear")
+
+#---Process the original rasters----
+
+# reproject and aggregate the og rasters
+# tree cover
+tree_cover_agg <- aggregate(tree_cover, fact = 100, na.rm = TRUE)
+tree_cover_agg
+plot(tree_cover_agg)
+
+tree_cover_resamp <- resamp(tree_cover$test, whp_rast_proj, "bilinear")
+tree_cover_resamp
+plot(tree_cover_resamp)
+
+# stand age
+tree_age_resamp <- resamp(tree_age, whp_rast_proj, "bilinear")
+
+tree_age_proj <- project(tree_age, projection)
+tree_age_agg <- aggregate(tree_age_proj, fact = 3, fun = "mean", na.rm = TRUE)
 
 tree_age_resamp <- resamp(tree_age_proj, whp_rast_proj, "bilinear")
 plot(tree_age_proj)
@@ -62,8 +75,7 @@ saveRDS(tree_age_proj, file = here::here("data/processed/tree_age_proj.rds"))
 saveRDS(tree_age_agg, file = here::here("data/processed/tree_age_agg.rds"))
 saveRDS(tree_age_resamp, file = here::here("data/processed/tree_age_resamp.rds"))
 
-mill_change_resamp <- resamp(mill_change_cap, whp_rast_proj, "bilinear")
-
+# forest ownership
 # Before resampling forest ownership calculate the percent area that is private
 ## reclassify the raster
 ### make reclassification matrix
@@ -86,6 +98,12 @@ saveRDS(for_own_rc, file = here::here("data/processed/for_own_rc.rds"))
 saveRDS(for_own_rc_agg, file = here::here("data/processed/for_own_rc_agg.rds"))
 saveRDS(for_own_rc_agg_naf, file = here::here("data/processed/for_own_rc_agg_naf.rds"))
 
+for_own_rc_resamp <- readRDS(here::here("data/processed/for_own_rc_resamp.rds"))
+for_own_rc_resamp_ave <- readRDS(here::here("data/processed/for_own_rc_resamp_ave.rds"))
+for_own_rc <- readRDS(here::here("data/processed/for_own_rc.rds"))
+for_own_rc_agg <- readRDS(here::here("data/processed/for_own_rc_agg.rds"))
+for_own_rc_agg_naf <- readRDS(here::here("data/processed/for_own_rc_agg_naf.rds"))
+
 for_own_rc_agg
 for_own_rc_agg_naf
 for_own_rc
@@ -101,84 +119,8 @@ plot(for_own_rc_resamp)
 plot(for_own_rc)
 
 ## try using terra::extract() or zonal() to get fraction of county covered by raster
+# test using exactextractr::frac()? Make a sf of gridcells like in the PADUS script?
 
-##Get Continental US list
-us.abbr <- unique(tidycensus::fips_codes$state)[1:51]
-us.name <- unique(tidycensus::fips_codes$state_name)[1:51]
-us.fips <- unique(tidycensus::fips_codes$state_code)[1:51]
-
-us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
-colnames(us.states) <- c("state", "STATENAME", "FIPS")
-us.states$state <- as.character(us.states$state)
-us.states$STATENAME <- as.character(us.states$STATENAME)
-continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
-
-counties <- tigris::counties()
-counties <- counties %>%
-  filter(STATEFP %in% continental.states$FIPS) %>%
-  dplyr::select(GEOID, geometry)
-
-# reproject counties to raster
-counties_proj <- st_transform(counties, crs(for_own))
-identical(crs(for_own_rc), st_crs(counties_proj))
-
-# test using exactextractr::frac()
-
-counties_proj$test_areas <- exact_extract(for_own_rc, counties_proj, "frac")
-pct_pub <- counties_proj$pct_pubforest
-pct_priv <- counties_proj$pct_privforest
-
-counties_pubpriv <- cbind(counties_proj, exact_extract(for_own_rc, counties_proj, "frac"))
-
-counties_pubpriv_sf <- counties_pubpriv %>%
-  unnest(pct_privforest) # or whatever the column name is
-
-ggplot(counties_proj) + 
-  geom_sf(mapping = aes(fill = test_areas$frac_1, color = test_areas$frac_1))
-
-# save the shapefile
-#write_sf(obj = counties_proj, dsn = paste0(here::here("data/processed/"), "county_private_forest_pct_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-#test_cnt <- st_read(here::here("data/processed/county_private_forest_pct_2024-05-31.shp"))
-#saveRDS(counties_proj, file = here::here("data/processed/county_private_forest_pct.rds"))
-test_rds <- readRDS(here::here("data/processed/county_private_forest_pct.rds"))
-
-st_geometry(test_rds) <- "pct_pubforest"
-
-# can use use unnest() from tidyr to get the two fractions into their own columnes
-privforest_sf <- test_rds %>%
-  unnest(pct_privforest)
-
-# double check map
-ggplot(privforest_sf) + 
-  geom_sf(mapping = aes(fill = frac_1, color = frac_1))
-
-# need to re-rasterize the polygons
-privforest_sf_proj <- privforest_sf %>% st_transform(., crs = crs(ref_rast))
-
-# double check the map
-ggplot(privforest_sf_proj) + 
-  geom_sf(mapping = aes(fill = frac_1, color = frac_1))
-
-percent_privfor_rast <- rasterize(vect(privforest_sf), ref_rast, field = "frac_1")
-
-# Then resample the new raster
-privfor_resamp <- resamp(percent_privfor_rast, ref_rast, "bilinear")
-
-pctfor_own_rc_crop <- crop(for_own_rc, counties_proj[4:5,1], mask = TRUE)
-plot(for_own_rc_crop)
-# test out a smaller portion of the data
-test_county <- test_county %>% mutate(area = terra::extract(for_own_rc_crop, counties_proj[2,1], fun = mean, na.rm = TRUE))
-test_counties <- counties_proj[4:5, 1]
-test_counties <- test_counties %>% mutate(area = terra::extract(for_own_rc_crop, test_counties, fun = mean, na.rm = TRUE))
-
-ggplot(test_counties) + 
-  geom_sf(mapping = aes(fill = area$forest_own1, color = area$forest_own1))
-
-area_counties <- counties_proj %>%
-  mutate(area = terra::extract(for_own_rc, counties_proj, fun = mean, na.rm = TRUE))
-
-### make into polygon and load counties 
-#for_own_sf <- as.polygons(for_own_rc)
 
 # Check alignment and stack the rasters
 rast_stack <- c(arch_attri, ref_rast, mill_change_resamp, prec_seas, temp_seas, 
