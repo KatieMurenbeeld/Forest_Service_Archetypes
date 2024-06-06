@@ -23,6 +23,12 @@ granules <- c("50N_130W", "50N_120W", "50N_110W", "50N_100W", "50N_090W",
               "40N_100W", "40N_090W", "40N_080W", "30N_120W", "30N_110W",
               "30N_100W", "30N_090W", "30N_080W")
 
+# Set the projection
+projection = "epsg:5070"
+# Load reference raster
+ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast_proj <- project(ref_rast, projection)
+
 # Download the data
 download_forgain <- function(grans){    
   exdir <- here::here("data/original/forest_gain/")
@@ -51,9 +57,6 @@ agg_forgain <- function(ogrst, fac, res){
   writeRaster(rasters.agg, fnames.process, overwrite=TRUE)
   return(fnames.process) 
 }
-
-agg_forgain(here::here("data/original/forest_gain/Hansen_GFC-2023-v1.11_gain_30N_080W.tif"),
-            fac = 100, res = "3000m")
 
 for (rst in fnames_list) {
   agg_forgain(rst, 100, "3000m")
