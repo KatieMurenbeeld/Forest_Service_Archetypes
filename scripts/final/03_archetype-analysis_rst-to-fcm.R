@@ -12,6 +12,7 @@ library(RColorBrewer)
 library(viridis)
 library(raster)
 library(exactextractr) # I want this package but cannot seem to install because I was spelling it wrong :-/
+library(tigris)
 
 projection <- "epsg:5070"
 
@@ -75,8 +76,8 @@ saveRDS(tree_age_proj, file = here::here("data/processed/tree_age_proj.rds"))
 saveRDS(tree_age_agg, file = here::here("data/processed/tree_age_agg.rds"))
 saveRDS(tree_age_resamp, file = here::here("data/processed/tree_age_resamp.rds"))
 
-# forest ownership
-# Before resampling forest ownership calculate the percent area that is private
+####----forest ownership to look at with Matt--------
+for_own
 ## reclassify the raster
 ### make reclassification matrix
 m <- c(1, 4, 1, 
@@ -88,6 +89,68 @@ rclmat <- matrix(m, ncol = 3, byrow = TRUE)
 for_own_rc <- classify(for_own, rclmat, include.lowest=TRUE, others = 0)
 plot(for_own)
 plot(for_own_rc)
+
+# test for idaho
+## Get list of states in the CONUS
+us.abbr <- unique(fips_codes$state)[1:51]
+us.name <- unique(fips_codes$state_name)[1:51]
+
+us.states <- as.data.frame(cbind(us.abbr, us.name))
+colnames(us.states) <- c("state","STATENAME")
+us.states$state <- as.character(us.states$state)
+us.states$STATENAME <- as.character(us.states$STATENAME)
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+
+## Download the county boundaries and filter by states
+counties <- tigris::counties(state = continental.states$state, cb = TRUE)
+counties_proj <- counties %>% st_transform(., crs = crs(for_own_rc))
+
+## test for Idaho
+id_counties <- counties_proj %>%
+  filter(STUSPS == "ID")
+
+## create sf of cells for Idaho?
+id_cells_sf <- st_make_grid(id_counties, cellsize = 30000, what = "polygons")
+id_cells_sf <- st_sf(id_cells_sf) 
+plot(st_geometry(id_cells_sf))
+plot(st_geometry(id_counties), add = TRUE)
+
+for_own_rc_id <- crop(for_own_rc, st_geometry(id_cells_sf))
+plot(for_own_rc_id)
+
+# from https://gis.stackexchange.com/questions/433375/calculate-area-for-raster-in-r
+# but uses all the memory
+result <- as.data.frame(for_own_rc_id) %>%
+  group_by(forest_own1) %>% 
+  summarise(pixels = n()) %>% 
+  mutate(`area m^2` = pixels * 30 * 30, #multiply by pixel area
+         `area km^2` = round(`area m^2`/1e6,2))
+
+# this is quick but I don't like going from raster to sf and back to raster
+id_cells_frac <- cbind(id_cells_sf, exact_extract(for_own_rc_id, id_cells_sf, "frac"))
+##----Create a template raster for the shapefiles----
+XMIN <- ext(id_cells_sf)$xmin
+XMAX <- ext(id_cells_sf)$xmax
+YMIN <- ext(id_cells_sf)$ymin
+YMAX <- ext(id_cells_sf)$ymax
+aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
+cellSize <- 30000
+NCOLS <- as.integer((XMAX-XMIN)/cellSize)
+NROWS <- as.integer(NCOLS * aspectRatio)
+id_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
+                     xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
+                     vals=1, crs=projection)
+#------------------------------------------------
+id_cells_frac_rast <- rasterize(id_cells_frac, id_cells_rst, field = "frac_1")
+# could I just resample since the values are either 0 or 1?
+id_cells_resamp <- resample(for_own_rc_id, id_cells_rst) # I think this is what I want
+# but I need the white areas to be filled with 0s
+
+plot(id_cells_frac_rast)
+plot(id_cells_resamp)
+plot(for_own_rc_id)
+
+#------
 for_own_rc_agg <- aggregate(for_own_rc, fact = 100, fun = "mean", na.rm = TRUE)
 for_own_rc_agg_naf <- aggregate(for_own_rc, fact = 100, fun = "mean", na.rm = FALSE)
 for_own_rc_resamp <- resamp(for_own_rc, whp_rast_proj, "near") # this took about 2 hours to run. Reprojecting the forest owner tif seems to take a very long time. 
@@ -114,6 +177,33 @@ plot(for_own_rc)
 plot(for_own_rc_resamp)
 
 #for_own_rc[is.na(for_own_rc[])] <- 0 
+#------
+## Get list of states in the CONUS
+us.abbr <- unique(fips_codes$state)[1:51]
+us.name <- unique(fips_codes$state_name)[1:51]
+
+us.states <- as.data.frame(cbind(us.abbr, us.name))
+colnames(us.states) <- c("state","STATENAME")
+us.states$state <- as.character(us.states$state)
+us.states$STATENAME <- as.character(us.states$STATENAME)
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+
+## Download the county boundaries and filter by states
+counties <- tigris::counties(state = continental.states$state, cb = TRUE)
+counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
+
+## test for Idaho
+id_counties <- counties_proj %>%
+  filter(STUSPS == "ID")
+
+id_cells_sf <- st_make_grid(id_counties, cellsize = 3000, what = "polygons")
+id_cells_sf <- st_sf(id_cells_sf) 
+
+id_cells <- id_cells_sf %>% 
+  dplyr::mutate(GRIDCELL_REFID = as.character(row_number())) %>%
+  dplyr::mutate(test_area = 0)
+
+test_priv_area <- exact_extract(for_own_rc_resamp, id_cells_sf)
 
 ### double check plot
 plot(for_own_rc)
