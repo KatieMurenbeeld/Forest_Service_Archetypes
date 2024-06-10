@@ -7,8 +7,8 @@ library(tigris)
 library(tmap)
 library(raster)
 library(units)
-#library(plyr)
-
+library(purrr)
+library(progress)
 
 # 1. Download the PADUS geodatabase
 ## From this website https://www.sciencebase.gov/catalog/item/652ef930d34edd15305a9b03
@@ -35,27 +35,28 @@ counties <- tigris::counties(state = continental.states$state, cb = TRUE)
 ## Load the PADUS4_0Fee layer of the PADUS geodatabase and filter for by states
 
 ### Check the layers of the geodatabase, here choose the PADUS4_0Fee layer
-padus_layers <- st_layers(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"))
+#padus_layers <- st_layers(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"))
 
-fed <- st_read(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"), layer = "PADUS4_0Fee")      
+#fed <- st_read(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"), layer = "PADUS4_0Fee")      
 
-conus_fed <- fed %>%
-  filter(State_Nm %in% continental.states$state) %>%
-  filter(Mang_Type == "FED")
+#conus_fed <- fed %>%
+#  filter(State_Nm %in% continental.states$state) %>%
+#  filter(Mang_Type == "FED")
 
 ### Once the data has been filtered, remove fed
-rm(fed)
+#rm(fed)
+
+# optional, write the shapefile to save a little time and memory 
+#st_write(conus_fed, "~/Analysis/Archetype_Analysis/data/processed/conus_fed.shp")
+# read in shapefile
+conus_fed <- st_read(here::here("data/processed/conus_fed.shp"))
 
 # 3. Set the projection and check for shape validity and empty geometries
 
-#conus_fedp <- st_transform(conus_fed, st_crs(counties))
 conus_fedp <- conus_fed %>% st_transform(., crs = projection)
-#identical(st_crs(conus_fedp), crs(ref_rast))
-#identical(st_crs(conus_fedp), st_crs(counties))
 
 ## Make the multisurface into multipolygons
 conus_fedp <- conus_fedp %>% st_cast("MULTIPOLYGON")
-#conus_fed <- conus_fed %>% st_cast("MULTIPOLYGON")
 
 ## Turn off using spherical geometry
 sf_use_s2(FALSE)
@@ -64,49 +65,15 @@ sf_use_s2(FALSE)
 all(st_is_valid(conus_fedp))
 conus_fedp_val <- st_make_valid(conus_fedp)
 all(st_is_valid(conus_fedp_val))
-#conus_fedp_val_buff <- st_buffer(conus_fedp_val, dist = 0)
 
 ## Check for and remove empty geometries
 all(st_is_empty(conus_fedp_val))
-#conus_fedp_val_noempty = conus_fedp_val[!st_is_empty(conus_fedp_val),]
-#st_is_empty(conus_fedp_val_noempty)
 
-# 4. Calculate the area of overlapping Fed and county polygons (maybe I didn't need to figure out the rasterization yet...)----
-## from stack overflow https://gis.stackexchange.com/questions/362466/calculate-percentage-overlap-of-2-sets-of-polygons-in-r
-
-## Calculate area and tidy up
-#intersect_pct <- st_intersection(counties, conus_fedp_val) %>% 
-#  mutate(intersect_area = st_area(.)) %>% # create new column with shape area
-#  group_by(GEOID) %>% # group by GEOID
-#  summarise(intersect_area_sum = sum(intersect_area)) %>% # add the intersect areas
-#  dplyr::select(GEOID, intersect_area_sum) %>%   # only select columns needed to merge
-#  st_drop_geometry()  # drop geometry as we don't need it
-
-# Create a fresh area variable for counties
-counties <- mutate(counties, county_area = st_area(counties))
-
-# Merge by county FIPS (GEOID)
-counties <- merge(counties, intersect_pct, by = "GEOID", all.x = TRUE)
-
-# Calculate coverage and replace NA with 0
-counties <- counties %>% 
-  mutate(coverage = as.numeric(intersect_area_sum/county_area))
-counties$coverage[is.na(counties$coverage)] <- 0
-
-counties_sub <- counties %>%
-  dplyr::select(GEOID, intersect_area_sum, coverage)
-
-## save as a shapefile
-write_sf(obj = counties, dsn = paste0(here::here("data/processed/"), "county_fed_gov_coverage_pct", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-print("new shapefile written")
-#----
-# 4.1 Repeat but I want 3km cells and the % of the cell covered by government agency
+# 4. Calculate the area of Federal fee lands
 # Create grid cells as a shapefile for the bounding box and crs of the ref raster
 # Then calculate the area of padus polygons overlapping the grid cells
-# Could I create an empty raster and use extract? Then rasterize? 
+# Then rasterize and replace NAs with 0 
 
-#counties_p <- counties %>% st_transform(., crs = crs(ref_rast))
-#----testing % area fed and % area fed type----
 ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 ref_rast_proj <- project(ref_rast, projection)
 counties_proj <- counties %>% st_transform(., crs = projection)
@@ -134,18 +101,16 @@ NROWS <- as.integer(NCOLS * aspectRatio)
 id_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
                      xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
                      vals=1, crs=projection)
-
+#----
 conus_fed_name <- conus_fedp_val %>%
-  dplyr::select(Mang_Name)
+  dplyr::select(Mang_Nm)
 
 conus_fed_type <- conus_fedp_val %>%
-  dplyr::select(Mang_Type)
+  dplyr::select(Mng_Typ)
 
-conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = "epsg:5070") #%>%
-  #st_cast(., to = "POLYGON")
-conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = "epsg:5070") #%>%
-  #st_cast(., to = "POLYGON")
-
+conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = projection)
+conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = projection)
+#----
 # for all Federal agencies need to union first otherwise I got >1.00 percent_area
 id_fed_union <- conus_fed_type_proj %>%
   st_crop(., id_cells) %>%
@@ -223,29 +188,20 @@ plot(id_shan_rich_rast)
 plot(st_geometry(id_counties), add = TRUE)
 
 #----try for conus----
-
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
-ref_rast_proj <- project(ref_rast, projection)
-counties_proj <- counties %>% st_transform(., crs = projection)
-
+# create the sf of grid cells
 conus_cells <- st_make_grid(counties_proj, cellsize = 3000)
 
-# check the maps
-#plot(conus_cells)
-#plot(st_geometry(counties_proj), add = TRUE)
-
 # make into sf
-conus_cells <- st_sf(conus_cells) 
-
+conus_cells_sf <- st_sf(conus_cells) 
 # add unique cell id
-conus_cells <- conus_cells %>% 
+conus_cells_sf <- conus_cells_sf %>% 
   mutate(GRIDCELL_REFID = as.character(row_number()))
 
 ## Create a template raster for the shapefiles
-XMIN <- ext(conus_cells)$xmin
-XMAX <- ext(conus_cells)$xmax
-YMIN <- ext(conus_cells)$ymin
-YMAX <- ext(conus_cells)$ymax
+XMIN <- ext(conus_cells_sf)$xmin
+XMAX <- ext(conus_cells_sf)$xmax
+YMIN <- ext(conus_cells_sf)$ymin
+YMAX <- ext(conus_cells_sf)$ymax
 aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
 cellSize <- 3000
 NCOLS <- as.integer((XMAX-XMIN)/cellSize)
@@ -254,28 +210,71 @@ conus_cells_rst <- rast(ncol=NCOLS, nrow=NROWS,
                      xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
                      vals=1, crs=projection)
 
-conus_fed_name <- conus_fedp_val %>%
-  dplyr::select(Mang_Name)
+#conus_cells_crop <- st_crop(conus_cells, conus_fed_name_proj)
 
-conus_fed_type <- conus_fedp_val %>%
-  dplyr::select(Mang_Type)
+# test doing intersects first
+intersections <- st_intersects(x = conus_cells_sf, y = conus_fed_type_proj)
+#intersections2 <- st_intersects(x = conus_fed_type_proj, y = conus_cells_sf)
+pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
 
-conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = "epsg:5070") #%>%
-#st_cast(., to = "POLYGON")
-conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = "epsg:5070") #%>%
-#st_cast(., to = "POLYGON")
+intersectFeatures <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
+  pb$tick()
+  st_intersection(x = conus_cells_sf[ix,], y = conus_fed_type_proj[intersections[[ix]],])
+})
+# test with st_intersection(x, y) where y is the conus_cells as a larger sfc object
+test_fed_type_int <- st_intersection(conus_fed_type_proj, conus_cells)
+conus_fed_rich <- test_fed_type_int %>%
+  group_by(., GRIDCELL_REFID) %>%
+  summarise(., numfed = n())
+# Calculate the richness (number of Federal agencies on one gridcell)
+rich.df <- data.frame(GRIDCELL_REFID = character(),
+                      areafed = numeric())
 
+#st_intersection(conus_fed_name_proj, conus_cells[1,])
+
+for (i in 1:10){
+  inx <- st_intersection(conus_cells[i,], conus_fed_type_proj)
+  GRIDCELL_REFID <- conus_cells[i,]$GRIDCELL_REFID
+  areafed <- st_area(inx)
+  if(length(areafed) == 0){
+    areafed <- 0
+  } else{areafed <- areafed}
+  rich.df[nrow(rich.df) + 1,] <- c(GRIDCELL_REFID,
+                                   areafed)
+  print(i)
+}
+
+conus_fed_name_int <- st_intersection(conus_cells, conus_fed_name_proj)
+conus_fed_rich <- conus_fed_name_int %>%
+  group_by(., GRIDCELL_REFID) %>%
+  summarise(., numfed = n())
+
+### do not run----------
+#conus_fed_name_int <- conus_fed_name_int %>%
+#  mutate(area = st_area(.)) %>%
+#  mutate(percent_area = drop_units(area) / (3000*3000))
+
+#conus_fed_all_areas <- conus_fed_name_int %>% 
+#  group_by(GRIDCELL_REFID, Mang_Name) %>% 
+#  summarize(area = sum(area)) %>%
+#  mutate(percent_area = drop_units(area) / (3000*3000))
+#-----
 # for all Federal agencies need to union first otherwise I got >1.00 percent_area
 conus_fed_union <- conus_fed_type_proj %>%
   st_crop(., conus_cells) %>%
   st_union(.)
-
 saveRDS(conus_fed_union, here::here("data/processed/conus_fed_union.rds"))
 
 # intersection for all Fed fee lands
-#d[is.na(d)] <- 0
-conus_fed_union[is.na(conus_fed_union)] <- 0
-saveRDS(conus_fed_union, here::here("data/processed/conus_fed_union_na_0.rds"))
+###----for-loop----
+ext.list <- list()
+ext.list <- for (i in 1:nrow(conus_cells)){
+  inx <- st_intersection(conus_fed_union, conus_cells[i])
+  df <- data.frame(id = conus_cells[i, "GRIDCELL_REFID"],
+                   areafed = st_area(inx),
+                   pctfed = areafed/(cellSize^2))
+  print(i)
+}
 
 conus_fed_uni_int <- st_intersection(conus_cells, conus_fed_union)
 saveRDS(conus_fed_uni_int, here::here("data/processed/conus_fed_uni_int.rds"))
@@ -283,8 +282,14 @@ conus_fed_uni_int <- conus_fed_uni_int %>%
   mutate(area = st_area(.)) %>%
   mutate(percent_area = drop_units(area) / (3000*3000)) # add another field if percent area is NA return 0 else return percent area
 conus_fed_uni_rast <- rasterize(conus_fed_uni_int, conus_cells_rst, field = "percent_area")
+# then set nas to 0
 plot(id_fed_uni_rast)
 writeRaster(conus_fed_uni_rast, here::here("data/processed/fed_area_3km_conus_", Sys.Date(), ".tif"))
 #plot(st_geometry(id_cells), add = TRUE)
 #plot(st_geometry(id_counties), add = TRUE)
 
+conus_rich <- rast("~/Analysis/NEPA_Efficiency/data/processed/conus_fed_rich.tif")
+conus_rich
+plot(conus_rich)
+conus_rich[is.na(conus_rich)] <-0
+plot(conus_rich)
