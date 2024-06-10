@@ -111,7 +111,6 @@ ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 ref_rast_proj <- project(ref_rast, projection)
 counties_proj <- counties %>% st_transform(., crs = projection)
 
-
 #----test with idaho counties and 30kmx30km grid cell----
 id_counties <- counties_proj %>%
   filter(STUSPS == "ID")
@@ -157,11 +156,14 @@ plot(st_geometry(id_fed_union))
 id_fed_uni_int <- st_intersection(id_cells, id_fed_union)
 id_fed_uni_int <- id_fed_uni_int %>%
   mutate(area = st_area(.)) %>%
-  mutate(percent_area = drop_units(area) / (30000*30000))
+  mutate(percent_area = drop_units(area) / (30000*30000)) # add another field if percent area is NA return 0 else return percent area
 id_fed_uni_rast <- rasterize(id_fed_uni_int, id_cells_rst, field = "percent_area")
 plot(id_fed_uni_rast)
 plot(st_geometry(id_cells), add = TRUE)
 plot(st_geometry(id_counties), add = TRUE)
+
+# make all NAs 0 in the raster first before the intersection
+#id_fed_uni_rast
 
 # for different Federal agencies
 id_fed_name_int <- st_intersection(id_cells, conus_fed_name_proj)
@@ -212,18 +214,25 @@ id_shannon <- id_fed_all_areas_prop %>%
 id_shan_E_rast <- rasterize(id_shannon, id_cells_rst, field = "E")
 id_shan_rich_rast <- rasterize(id_shannon, id_cells_rst, field = "numfed")
 
+# don't use the evenness
 plot(id_shan_E_rast)
 plot(st_geometry(id_counties), add = TRUE)
 
+# use the richness and here NAs = 0
 plot(id_shan_rich_rast)
 plot(st_geometry(id_counties), add = TRUE)
 
-#----try for conus (large cells first)----
-conus_cells <- st_make_grid(counties_proj, cellsize = 100000)
+#----try for conus----
+
+ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast_proj <- project(ref_rast, projection)
+counties_proj <- counties %>% st_transform(., crs = projection)
+
+conus_cells <- st_make_grid(counties_proj, cellsize = 3000)
 
 # check the maps
-plot(conus_cells)
-plot(st_geometry(counties_proj), add = TRUE)
+#plot(conus_cells)
+#plot(st_geometry(counties_proj), add = TRUE)
 
 # make into sf
 conus_cells <- st_sf(conus_cells) 
@@ -232,128 +241,50 @@ conus_cells <- st_sf(conus_cells)
 conus_cells <- conus_cells %>% 
   mutate(GRIDCELL_REFID = as.character(row_number()))
 
-# intersection for all Fed fee lands
-conus_test_ftype <- st_intersection(conus_fed_type_proj, conus_cells)
-
-conus_test_ftype <- conus_test_ftype %>%
-  mutate(area = st_area(.)) %>%
-  mutate(percent_area = drop_units(area) / (100000*100000))
-
-# rasterize
 ## Create a template raster for the shapefiles
 XMIN <- ext(conus_cells)$xmin
 XMAX <- ext(conus_cells)$xmax
 YMIN <- ext(conus_cells)$ymin
 YMAX <- ext(conus_cells)$ymax
 aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
-cellSize <- 100000
+cellSize <- 3000
 NCOLS <- as.integer((XMAX-XMIN)/cellSize)
 NROWS <- as.integer(NCOLS * aspectRatio)
-templateRas <- rast(ncol=NCOLS, nrow=NROWS, 
-                    xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
-                    vals=1, crs=projection)
+conus_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
+                     xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
+                     vals=1, crs=projection)
 
-conus_test_ftype_rast <- rasterize(conus_test_ftype, templateRas, field = "percent_area")
-# check the map
-plot(conus_test_ftype_rast) # I want 0 values where there is no Fed area...
-plot(st_geometry(counties_proj), add = TRUE)
-plot(conus_test_ftype_rast, add=TRUE)
-
-#----
-attArea <- id_test_int %>% 
-  mutate(area = st_area(.) %>% as.numeric())
-
-attArea %>% 
-  as_tibble() %>% 
-  group_by(field, soil) %>% 
-  summarize(area = sum(area))
-
-id_test <- st_sf(id_test_int)
-
-id_test$area <- st_area(id_test)
-
-id_test_rast <- rasterize(vect(id_test_int), ref_rast, field = "percent_area")
-plot(id_test_rast)
-
-id_test %>% 
-  as_tibble() %>% 
-  group_by(id_cells, conus_fed_name_proj) %>% 
-  summarize(area = sum(area))
-
-id_test_area <- id_test_int %>%
-  mutate(area = st_area())
-
-id_test_int$area <- st_area(id_test_int)
+conus_fed_name <- conus_fedp_val %>%
+  dplyr::select(Mang_Name)
 
 conus_fed_type <- conus_fedp_val %>%
   dplyr::select(Mang_Type)
-  
-pi_fed_name <- st_intersection(conus_cells, conus_fed_name)
 
-pi_fed_type <- st_intersection(conus_cells, conus_fed_type) %>%
-  mutate(intersect_area = st_area(.) %>% as.numeric())
+conus_fed_name_proj <- conus_fed_name %>% st_transform(., crs = "epsg:5070") #%>%
+#st_cast(., to = "POLYGON")
+conus_fed_type_proj <- conus_fed_type %>% st_transform(., crs = "epsg:5070") #%>%
+#st_cast(., to = "POLYGON")
 
-ref_rast_proj <- project(ref_rast, "epsg:5070")
-counties_proj <- counties %>% st_transform(., crs = "epsg:5070")
+# for all Federal agencies need to union first otherwise I got >1.00 percent_area
+conus_fed_union <- conus_fed_type_proj %>%
+  st_crop(., conus_cells) %>%
+  st_union(.)
 
-pi_2 <- pi %>%
-  mutate(area = st_area(.) %>% as.numeric())
+saveRDS(conus_fed_union, here::here("data/processed/conus_fed_union.rds"))
 
+# intersection for all Fed fee lands
+#d[is.na(d)] <- 0
+conus_fed_union[is.na(conus_fed_union)] <- 0
+saveRDS(conus_fed_union, here::here("data/processed/conus_fed_union_na_0.rds"))
 
-
-padus_proj_sel <- conus_fedp_val %>%
-  dplyr::select(Mang_Name, Mang_Type, SHAPE)
-padus_proj_sel$percent_calc <- as.numeric(1)
-percent_fed_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Type")
-percent_fedname_rast <- rasterize(vect(padus_proj_sel), ref_rast, field = "Mang_Name")
-plot(percent_fed_rast)
-plot(percent_fedname_rast)
-
-percent_test <- rasterize(vect(padus_proj_sel), ref_rast, field = "percent_calc")
-plot(percent_test)
-
-padus_proj_sf <- st_as_sf(padus_proj_sel)
-
-fed_rast <- rasterize(vect(padus_proj_sf), ref_rast)
-plot(fed_rast)
-# 5. Calculate the Shannon Diversity Index for Federal ownership by county
-
-## Calculate area and tidy up
-fed_intersect <- st_intersection(counties_sub, conus_fedp_val) %>% 
-  mutate(fed_intersect = st_area(.)) %>% # create new column with shape area
-  group_by(GEOID, Mang_Name) %>% # group by GEOID and the Fed agency name
-  summarise(fed_inter_sum = sum(fed_intersect)) %>% # sum the intersected areas
-  dplyr::select(GEOID, Mang_Name, fed_inter_sum) %>%   # only select columns needed to merge
-  st_drop_geometry()
-  
-# Create a fresh area variable for counties
-counties_join <- mutate(counties, county_area = drop_units(st_area(counties)))
-
-# Merge by county name
-counties_join <- merge(counties_join, drop_units(fed_intersect), by = "GEOID", all.x = TRUE)
-counties_join$fed_inter_sum[is.na(counties_join$fed_inter_sum)] <- 0
-counties_join <- counties_join %>%
-  dplyr::select(GEOID, Mang_Name, fed_inter_sum, county_area, intersect_area_sum, coverage)
-
-# Calculate Shannon Index and replace NA with 0
-counties_prop <- counties_join %>% 
-  mutate(., prop = fed_inter_sum/county_area,
-         step1 = -prop * log(prop))
-counties_prop$step1[is.na(counties_prop$step1)] <- 0
-
-counties_fed_rich <- counties_prop %>%
-  group_by(., GEOID) %>%
-  summarise(., numfed = n())
-
-counties_shannon <- counties_prop %>% 
-  drop_na(Mang_Name) %>%
-  group_by(., GEOID) %>% 
-  summarise(., numfed = n(), 
-            H = sum(step1),
-            fedarea = sum(unique(fed_inter_sum)),
-            E = H/log((fedarea)))
-
-## save as a shapefile
-#write_sf(obj = counties_shannon, dsn = paste0(here::here("data/processed/"), "county_fed_shannon_div_even_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-print("new shapefile written")
+conus_fed_uni_int <- st_intersection(conus_cells, conus_fed_union)
+saveRDS(conus_fed_uni_int, here::here("data/processed/conus_fed_uni_int.rds"))
+conus_fed_uni_int <- conus_fed_uni_int %>%
+  mutate(area = st_area(.)) %>%
+  mutate(percent_area = drop_units(area) / (3000*3000)) # add another field if percent area is NA return 0 else return percent area
+conus_fed_uni_rast <- rasterize(conus_fed_uni_int, conus_cells_rst, field = "percent_area")
+plot(id_fed_uni_rast)
+writeRaster(conus_fed_uni_rast, here::here("data/processed/fed_area_3km_conus_", Sys.Date(), ".tif"))
+#plot(st_geometry(id_cells), add = TRUE)
+#plot(st_geometry(id_counties), add = TRUE)
 
