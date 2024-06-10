@@ -112,10 +112,6 @@ download_data(url, file_name)
 #---Data that needs more in-depth downloading, processing-----------------------
 #---is by subscription only or requires an account with AppEARS (EarthData)-----
 
-# NACP 1-km forest age maps
-# see https://daac.ornl.gov/cgi-bin/dsviewer.pl?ds_id=1096
-# see data/original/NA_TreeAge_1096/data 
-
 # Regional Economic Accounts
 # From the "Personal income (state and local)" dropdown select 
 # CAINC6NC: compensation of employees by NAICS industry
