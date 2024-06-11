@@ -221,6 +221,32 @@ intersectFeatures <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
   pb$tick()
   st_intersection(x = conus_cells_sf[ix,], y = conus_fed_type_proj[intersections[[ix]],])
 })
+
+test_intersectFeatures <- head(intersectFeatures, n = 338773)
+intersectFeatures_areas <- test_intersectFeatures %>%
+  mutate(area = st_area(.)) %>%
+  mutate(percent_area = drop_units(area) / (3000*3000))
+
+test_intersectFeatures_rast <- rasterize(intersectFeatures_areas, conus_cells_rst, field = "percent_area")
+plot(test_intersectFeatures_rast)
+test_intersectFeatures_rast[is.na(test_intersectFeatures_rast)] <- 0
+plot(test_intersectFeatures_rast)
+writeRaster(test_intersectFeatures_rast, here::here("data/processed/test_pctarea_fed_conus_3km.tif"))
+
+# test doing intersects first - the different Federal agencies (conus_fed_name_proj) for richness
+intersections_fedname <- st_intersects(x = conus_cells_sf, y = conus_fed_name_proj)
+#intersections2 <- st_intersects(x = conus_fed_type_proj, y = conus_cells_sf)
+pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
+
+intersectFeatures_fedname <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
+  pb$tick()
+  st_intersection(x = conus_cells_sf[ix,], y = conus_fed_name_proj[intersections_fedname[[ix]],])
+})
+
+
+
+
+
 # test with st_intersection(x, y) where y is the conus_cells as a larger sfc object
 test_fed_type_int <- st_intersection(conus_fed_type_proj, conus_cells)
 conus_fed_rich <- test_fed_type_int %>%
