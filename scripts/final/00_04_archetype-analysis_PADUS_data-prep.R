@@ -236,10 +236,10 @@ writeRaster(test_intersectFeatures_rast, here::here("data/processed/test_pctarea
 # test doing intersects first - the different Federal agencies (conus_fed_name_proj) for richness
 intersections_fedname <- st_intersects(x = conus_cells_sf, y = conus_fed_name_proj)
 #intersections2 <- st_intersects(x = conus_fed_type_proj, y = conus_cells_sf)
-pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
+pb2 <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
 
 intersectFeatures_fedname <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
-  pb$tick()
+  pb2$tick()
   st_intersection(x = conus_cells_sf[ix,], y = conus_fed_name_proj[intersections_fedname[[ix]],])
 })
 
