@@ -243,9 +243,9 @@ intersectFeatures_fedname <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
   st_intersection(x = conus_cells_sf[ix,], y = conus_fed_name_proj[intersections_fedname[[ix]],])
 })
 
-
-
-
+conus_fed_rich <- intersectFeatures_fedname %>%
+  group_by(., GRIDCELL_REFID) %>%
+  summarise(., numfed = n())
 
 # test with st_intersection(x, y) where y is the conus_cells as a larger sfc object
 test_fed_type_int <- st_intersection(conus_fed_type_proj, conus_cells)
