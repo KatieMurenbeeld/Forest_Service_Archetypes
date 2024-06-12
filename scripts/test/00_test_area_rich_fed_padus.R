@@ -148,13 +148,13 @@ continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI
 
 counties <- tigris::counties()
 counties <- counties %>%
-  filter(STATEFP %in% us.states$FIPS) %>%
+  filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, COUNTYFP, STATEFP, geometry)
 
 fed <- st_read(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"), layer = "PADUS4_0Fee") 
 
 conus_fed <- fed %>%
-  filter(State_Nm %in% continental.states) %>%
+  filter(State_Nm %in% continental.states$state) %>%
   filter(Mang_Type == "FED")
 
 rm(fed)
@@ -167,8 +167,10 @@ conus_fed_proj_name <- conus_fed_proj %>%
 conus_fed_proj_type <- conus_fed_proj %>%
   dplyr::select(Mang_Type)
 
+# create a 3km grid for conus
 conus_cells <- st_make_grid(counties_proj, cellsize = 3000)
 conus_cells_sf <- st_sf(conus_cells) 
+
 # add unique cell id
 conus_cells_sf <- conus_cells_sf %>% 
   mutate(GRIDCELL_REFID = as.character(row_number()))
@@ -182,7 +184,7 @@ aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
 cellSize <- 3000
 NCOLS <- as.integer((XMAX-XMIN)/cellSize)
 NROWS <- as.integer(NCOLS * aspectRatio)
-nc_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
+conus_cells_rst <- rast(ncol=NCOLS, nrow=NROWS, 
                      xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
                      vals=1, crs=projection)
 
