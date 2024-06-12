@@ -133,8 +133,6 @@ identical(nc_fed_name_rich_rst, intersectFeatures_rich_rst)
 
 #----Now run for CONUS----
 
-## Load county boundaries from tigris
-counties <- tigris::counties()
 # create the list of CONUS states 
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
@@ -146,10 +144,8 @@ us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
 continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
 
-counties <- tigris::counties()
-counties <- counties %>%
-  filter(STATEFP %in% continental.states$FIPS) %>%
-  dplyr::select(GEOID, COUNTYFP, STATEFP, geometry)
+## Download the county boundaries and filter by states
+counties <- tigris::counties(state = continental.states$state, cb = TRUE)
 
 fed <- st_read(here::here("data/original/PADUS4_0Geodatabase/PADUS4_0_Geodatabase.gdb"), layer = "PADUS4_0Fee") 
 
@@ -161,11 +157,6 @@ rm(fed)
 
 # reproject
 counties_proj <- st_transform(counties, crs = projection)
-conus_fed_proj <- st_transform(conus_fed, crs = projection)
-conus_fed_proj_name <- conus_fed_proj %>%
-  dplyr::select(Mang_Name)
-conus_fed_proj_type <- conus_fed_proj %>%
-  dplyr::select(Mang_Type)
 
 # create a 3km grid for conus
 conus_cells <- st_make_grid(counties_proj, cellsize = 3000)
@@ -188,9 +179,34 @@ conus_cells_rst <- rast(ncol=NCOLS, nrow=NROWS,
                      xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
                      vals=1, crs=projection)
 
+# clean up padus data
+sf_use_s2(FALSE)
+
+conus_fed_proj <- conus_fed %>% st_transform(., crs = projection)
+
+## Make the multisurface into multipolygons
+conus_fed_proj <- conus_fed_proj %>% st_cast("MULTIPOLYGON")
+
+## Check for invalid geometries and fix
+all(st_is_valid(conus_fed_proj))
+conus_fedp_val <- st_make_valid(conus_fed_proj)
+all(st_is_valid(conus_fedp_val))
+
+## Check for and remove empty geometries
+all(st_is_empty(conus_fedp_val))
+
+conus_fed_proj_type <- conus_fedp_val %>%
+  dplyr::select(Mang_Type) # for % area Fed
+
+conus_fed_proj_name <- conus_fedp_val %>%
+  dplyr::select(Mang_Name) # for Fed richness
+
 # Calculate the % area of federal land
 conus_fed_type_union <- conus_fed_proj_type %>%
   st_union(.)
+
+saveRDS(conus_fed_type_union, here::here("data/processed/conus_fed_type_union.RDS"), 
+        overwrite = TRUE) # save in case you need to start over from here
 
 intersections_fedtype <- st_intersects(conus_cells_sf, conus_fed_type_union)
 
