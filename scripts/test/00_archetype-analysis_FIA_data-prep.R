@@ -66,12 +66,12 @@ for (s in states_list){
 fia <- readFIA(here::here("data/original/fia/"), tables = "COND", inMemory = TRUE)
 
 ## from the COND table select the STATECD, COUNTYCD, STDAGE, and SITECLCD
-conus_age_prod <- dplyr::select(fia$COND, STATECD, COUNTYCD, STDAGE, SITECLCD)
+conus_prod <- dplyr::select(fia$COND, STATECD, COUNTYCD, SITECLCD)
 
 # 2. Create a GEOID column
 ## create a GEOID of the of the county and state codes (make the FIPS code) to 
 ## easily join to counties and to better group and summarise
-conus_age_prod <- conus_age_prod %>%
+conus_prod <- conus_age_prod %>%
   mutate(GEOID = paste0(str_pad(as.character(STATECD), 2, pad = "0"), str_pad(COUNTYCD, 3, pad = "0")))
 
 # 3. Update the productivity code and replace -999 with NA in STDAGE
@@ -80,7 +80,7 @@ conus_age_prod <- conus_age_prod %>%
 # see https://www.fs.usda.gov/rm/pubs/rmrs_gtr245.pdf 
 # USDA Forest Service Gen. Tech. Rep. RMRS-GTR-245. 2010 pg 53 
 
-conus_age_prod <- conus_age_prod %>%
+conus_prod <- conus_prod %>%
   mutate(siteprod = case_when(
     SITECLCD == 1 ~ 225,
     SITECLCD == 2 ~ 194.5,
@@ -91,29 +91,30 @@ conus_age_prod <- conus_age_prod %>%
     SITECLCD == 7 ~ 9.5
   ))
 
-conus_age_prod <- conus_age_prod %>%
-  mutate(STDAGE_CL = case_when(
-    STDAGE == -999 ~ NA, 
-    STDAGE >= -999 ~ STDAGE))
-
 # 4. Summarise the data
 ## group the data by GEOID (FIPS code)
 ## there will be warning for rows with no data
-conus_age_prod_grp <- conus_age_prod %>%
+conus_prod_grp <- conus_prod %>%
   group_by(GEOID) %>%
-  summarise(mean_stdage = mean(as.numeric(STDAGE_CL), na.rm= TRUE),
-            max_prodcd = max(as.numeric(SITECLCD), na.rm= TRUE), 
+  summarise(max_prodcd = max(as.numeric(SITECLCD), na.rm= TRUE), 
             min_prodcd = min(as.numeric(SITECLCD), na.rm= TRUE),
             mean_prod = mean(as.numeric(siteprod), na.rm = TRUE))
 
 # 5. Join to the county geometries and make it an sf
-conus_age_prod_sf <- st_as_sf(left_join(conus_age_prod_grp, counties, by = "GEOID"))
+conus_prod_sf <- st_as_sf(left_join(conus_prod_grp, counties, by = "GEOID"))
 
 # 6. Check and fix validity
 all(st_is_valid(conus_age_prod_sf))
 
 ## Check for empty geometries and invalid or corrupt geometries 
 any(st_is_empty(conus_age_prod_sf))
+index <- st_touches(conus_prod_sf, conus_prod_sf)
+conus_prod_fill_sf <- conus_prod_sf %>% 
+  mutate(mean_prod_fill = ifelse(is.na(mean_prod),
+                            apply(index, 1, function(i){mean(.$mean_prod[i])}),
+                            mean_prod))
+any(st_is_empty(output))
+
 conus_age_prod_sf_noempty <- conus_age_prod_sf[!st_is_empty(conus_age_prod_sf),]
 any(st_is_empty(conus_age_prod_sf_noempty))
 any(is.na(st_is_valid(conus_age_prod_sf_noempty)))
@@ -122,16 +123,14 @@ st_is_longlat(conus_age_prod_sf_noempty)
 
 ## Double check plots
 ggplot() +
-  geom_sf(data = conus_age_prod_sf, mapping = aes(color = mean_stdage, fill = mean_stdage))
+  geom_sf(data = conus_prod_sf, mapping = aes(color = max_prodcd, fill = max_prodcd))
 ggplot() +
-  geom_sf(data = conus_age_prod_sf, mapping = aes(color = max_prodcd, fill = max_prodcd))
+  geom_sf(data = conus_prod_sf, mapping = aes(color = min_prodcd, fill = min_prodcd))
 ggplot() +
-  geom_sf(data = conus_age_prod_sf, mapping = aes(color = min_prodcd, fill = min_prodcd))
-ggplot() +
-  geom_sf(data = conus_age_prod_sf, mapping = aes(color = mean_prod, fill = mean_prod))
+  geom_sf(data = output, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
 
 # 7. Save the validated shapefile
-write_sf(obj = conus_age_prod_sf_noempty, dsn = here::here("data/processed/conus_age_prod_fia.shp"), overwrite = TRUE, append = FALSE)
+write_sf(obj = conus_prod_fill_sf, dsn = here::here("data/processed/conus_prod_fia.shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
 
