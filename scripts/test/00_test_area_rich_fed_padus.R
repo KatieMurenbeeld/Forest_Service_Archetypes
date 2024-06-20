@@ -205,19 +205,20 @@ conus_fed_proj_name <- conus_fedp_val %>%
 conus_fed_type_union <- conus_fed_proj_type %>%
   st_union(.)
 
-saveRDS(conus_fed_type_union, here::here("data/processed/conus_fed_type_union.RDS"), 
-        overwrite = TRUE) # save in case you need to start over from here
+#saveRDS(conus_fed_type_union, here::here("data/processed/conus_fed_type_union.RDS")) # save in case you need to start over from here
 
 intersections_fedtype <- st_intersects(conus_cells_sf, conus_fed_type_union)
+saveRDS(intersections_fedtype, here::here("data/processed/intersections_fedtype.RDS")) # save in case you need to start over from here
 
 pb <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
 
-intersectFeatures_fedtype <- map_dfr(1:dim(nc_cells_sf)[1], function(ix){
+intersectFeatures_fedtype <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
   pb$tick()
   st_intersection(x = conus_cells_sf[ix,], y = conus_fed_type_union[intersections_fedtype[[ix]],])
 })
+saveRDS(intersectFeatures_fedtype, here::here("data/processed/intersectFeatures_fedtype.RDS")) # save in case you need to start over from here
 
-hd_intersectFeatures_fedtype <- head(intersections_fedtype, n = xL)
+hd_intersectFeatures_fedtype <- head(intersectFeatures_fedtype, n = 278203L)
 
 intersectFeatures_fedtype_ar <- hd_intersectFeatures_fedtype %>%
   mutate(area = st_area(.)) %>%
@@ -231,6 +232,7 @@ writeRaster(intersectFeatures_fedtype_ar, here::here(paste0("data/processed/conu
 #----Fed Richness-----
 
 intersections_rich <- st_intersects(conus_cells_sf, conus_fed_proj_name)
+saveRDS(intersections_rich, here::here("data/processed/intersections_rich.RDS")) # save in case you need to start over from here
 
 pb2 <- progress_bar$new(format = "[:bar] :current/:total (:percent)", total = dim(conus_cells_sf)[1])
 
@@ -239,12 +241,13 @@ intersectFeatures_rich <- map_dfr(1:dim(conus_cells_sf)[1], function(ix){
   st_intersection(x = conus_cells_sf[ix,], y = conus_fed_proj_name[intersections_rich[[ix]],])
 })
 
+saveRDS(intersectFeatures_rich, here::here("data/processed/intersectFeatures_rich.RDS"))
+
 intersectFeatures_richness <- intersectFeatures_rich %>%
   group_by(., GRIDCELL_REFID) %>%
   summarise(., numfed = n())
 
 intersectFeatures_rich_rst <- rasterize(intersectFeatures_richness, conus_cells_rst, field = "numfed")
-plot(intersectFeatures_rich_rst)
 writeRaster(intersectFeatures_rich_rst, here::here(paste0("data/processed/conus_fed_rich_", Sys.Date(), ".tif")))
-
+plot(intersectFeatures_rich_rst)
 
