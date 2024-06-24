@@ -10,6 +10,7 @@ library(ggpattern)
 library(distributional)
 library(ggdist)
 library(ggsci)
+library(tigris)
 
 # Load the data
 fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
@@ -39,18 +40,148 @@ fs_reg.proj <- fs_reg %>%
   st_transform(., crs=projection)
 fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_all_attri))
 
+# crop no_gs attributes to Idaho, California, Minnesota, and Alabama
+states <- states(cb = TRUE)
+states_proj <- states %>% st_transform(., crs = projection)
+id_proj <- states_proj %>%
+  filter(STUSPS == "ID")
+ca_proj <- states_proj %>%
+  filter(STUSPS == "CA")
+al_proj <- states_proj %>%
+  filter(STUSPS == "AL")
+mn_proj <- states_proj %>%
+  filter(STUSPS == "MN")
+
+# get shape fil
+
+## Check and rename the attributes in each raster stack
+names(fcm_no_gs_attri)
+fcm_no_gs_attri_labs <- c("% Forest Pay", "Community Capital",
+                          "Net Migration 2020-2023", "% Less High School",
+                          "% Families Housing Burden", "% Household Energy Cost",
+                          "PM2.5 particle/m3", "Dist. to wilderness area, m", 
+                          "Dist. to critical habitat, m", "Wildfire Hazard Potential",
+                          "% Change in Mill Capacity 2019-2024", "Precip. Seasonality",
+                          "Temp. Seasonality", "Topo. Roughness", 
+                          "Travel time to >20000 city, min", "% Area Tree Cover", 
+                          "# Federal Agencies", "% Area with Forest Gain 2000-2012",
+                          "Ave Stand Age", "Ave. Forest Productivity cuft/ac2/yr")
+
+names(fcm_eco_attri)
+fcm_eco_attri_labs <- c("PM2.5 particle/m3", "Wildfire Hazard Potential",
+                        "Precip. Seasonality", "Temp. Seasonality", "Topo. Roughness")
+
+names(fcm_rursu01_attri)
+fcm_rursu01_attri_labs <- c("% Forest Pay", "Community Capital",
+                            "% Families Housing Burden", "% Household Energy Cost",
+                            "Travel time to >20000 city, min", "% Area Tree Cover", 
+                            "% Area with Forest Gain 2000-2012", "Ave Stand Age", 
+                            "Ave. Forest Productivity cuft/ac2/yr")
+
+
 ## Create a map of the clusters with the National Forest boundaries
-group.df <- map.conus$Groups %>% as.data.frame(xy = TRUE)
+fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
 
-#fcm_nf_map <- ggplot() +
-#  geom_raster(aes(x = group.df$x, y = group.df$y, fill = as.factor(group.df$Groups))) +
-#  geom_sf(data = fs_nf.proj, fill = NA, color = "black", size = 2) +
-#  scale_fill_brewer(palette = "Set2") +
-#  labs(title = "Fuzzy Cluster Map: k=5, m=1.7") +
-#  theme(legend.position = "bottom")
+fcm_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black", linewidth = 2) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank())
 
-#fcm_nf_map
-#ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+fcm_nf_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+
+# Maps for Idaho, California, Minnesota, Alabama
+id_fcm_result <- crop(fcm_no_gs_result, id_proj, mask = TRUE)
+id_nf_int <- st_intersection(fs_nf.proj, id_proj, mask = TRUE)
+ca_fcm_result <- crop(fcm_no_gs_result, ca_proj, mask = TRUE)
+ca_nf_int <- st_intersection(fs_nf.proj, ca_proj, mask = TRUE)
+mn_fcm_result <- crop(fcm_no_gs_result, mn_proj, mask = TRUE)
+mn_nf_int <- st_intersection(fs_nf.proj, mn_proj, mask = TRUE)
+al_fcm_result <- crop(fcm_no_gs_result, al_proj, mask = TRUE)
+al_nf_int <- st_intersection(fs_nf.proj, al_proj, mask = TRUE)
+
+fcm.id <- id_fcm_result$Groups %>% as.data.frame(xy = TRUE)
+
+fcm_id_map <- ggplot() +
+  geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
+  geom_sf(data = id_proj, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = id_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = id_nf_int %>% filter(FORESTORGC == "0402"), fill = NA, color = "red", linewidth = 1.75) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "FCM SES Attributes: k=5, m=1.875",
+       subtitle = "Idaho: Boise National Forest",
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank())
+
+fcm_id_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_id_nf_map_", Sys.Date(), ".png"), plot = fcm_id_map, width = 12, height = 12, dpi = 300)  
+
+fcm.ca <- ca_fcm_result$Groups %>% as.data.frame(xy = TRUE)
+
+fcm_ca_map <- ggplot() +
+  geom_raster(aes(x = fcm.ca$x, y = fcm.ca$y, fill = as.factor(fcm.ca$Groups))) +
+  geom_sf(data = ca_proj, fill = NA, color = "black",  linewidth = 1) +
+  geom_sf(data = ca_nf_int, fill = NA, color = "black",  linewidth = 2) +
+  geom_sf(data = ca_nf_int %>% filter(FORESTORGC == "0511"), fill = NA, color = "red",  linewidth = 2) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank())
+
+fcm_ca_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_ca_nf_map_", Sys.Date(), ".png"), plot = fcm_ca_map, width = 12, height = 12, dpi = 300)  
+
+fcm.mn <- mn_fcm_result$Groups %>% as.data.frame(xy = TRUE)
+
+fcm_mn_map <- ggplot() +
+  geom_raster(aes(x = fcm.mn$x, y = fcm.mn$y, fill = as.factor(fcm.mn$Groups))) +
+  geom_sf(data = mn_proj, fill = NA, color = "black",  linewidth = 1) +
+  geom_sf(data = mn_nf_int, fill = NA, color = "black", linewidth = 2) +
+  geom_sf(data = mn_nf_int %>% filter(FORESTORGC == "0909"), fill = NA, color = "red", linewidth = 3) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank())
+
+fcm_mn_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_mn_nf_map_", Sys.Date(), ".png"), plot = fcm_mn_map, width = 12, height = 12, dpi = 300)  
+
+
+fcm.al <- al_fcm_result$Groups %>% as.data.frame(xy = TRUE)
+
+fcm_al_map <- ggplot() +
+  geom_raster(aes(x = fcm.al$x, y = fcm.al$y, fill = as.factor(fcm.al$Groups))) +
+  geom_sf(data = al_proj, fill = NA, color = "black", linewidth = 2) +
+  geom_sf(data = al_nf_int, fill = NA, color = "black", linewidth = 2) +
+  geom_sf(data = al_nf_int %>% filter(FORESTORGC == "0801"), fill = NA, color = "red", linewidth = 3) + 
+  scale_fill_manual(values = c("#8DA0CB", "#E78AC3")) + 
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+       subtitle = "Alabama National Forests",
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank())
+
+fcm_al_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_al_nf_map_", Sys.Date(), ".png"), plot = fcm_al_map, width = 12, height = 12, dpi = 300)  
+
 
 ### Create map of archetypes with the Forest Region boundaries
 fcm.all.df <- fcm_all_result$Groups %>% as.data.frame(xy = TRUE)
@@ -65,22 +196,23 @@ fcm_all_reg_map <- ggplot() +
         axis.title.x = element_blank(), 
         axis.title.y = element_blank())
 fcm_all_reg_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_all_reg_map_", Sys.Date(), ".png"), 
-       plot = fcm_all_reg_map, width = 12, height = 12, dpi = 300)
+#ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_all_reg_map_", Sys.Date(), ".png"), 
+#       plot = fcm_all_reg_map, width = 12, height = 12, dpi = 300)
 
 fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
 fcm_no_gs_reg_map <- ggplot() +
   geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
-  geom_sf(data = fs_reg.crop, fill = NA, color = "black", size = 150) +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 2) +
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "FCM No GS Attributes: k=5, m=1.875", 
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
        fill = "Archetypes") +
   theme_bw() + 
-  theme(legend.position = "bottom",
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank())
 fcm_no_gs_reg_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_reg_map_", Sys.Date(), ".png"), 
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_reg_map_nn", Sys.Date(), ".png"), 
        plot = fcm_no_gs_reg_map, width = 12, height = 12, dpi = 300)
 
 fcm.rursu01.df <- fcm_rursu01_result$Groups %>% as.data.frame(xy = TRUE)
@@ -126,34 +258,101 @@ spiderPlots(df_all, fcm_all_model$Belongings)
 vplots_all[[4]]
 splots_all[[4]]
 
+fcm_no_gs_attri_sc <- scale(fcm_no_gs_attri)
 df_no_gs <- as.data.frame(fcm_no_gs_attri, na.rm = TRUE)
 vplots_no_gs <- violinPlots(df_no_gs, fcm_no_gs_model$Groups)
-#vplots_no_gs
+
+
+vplots_no_gs[[4]] +
+  scale_x_discrete(labels=c("Arch 1", "Arch 2", 
+                            "Arch 3", "Arch 4",
+                            "Arch 5")) + 
+  scale_fill_brewer(labels=c("Arch 1", "Arch 2", 
+                             "Arch 3", "Arch 4",
+                             "Arch 5"),
+                    palette = "Set2") +
+  geom_violin() + 
+  labs(title = fcm_no_gs_attri_labs[4], 
+       fill = "Archetype") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        axis.title.x = element_blank(),
+        axis.text.x = element_text(size = 16), 
+        axis.title.y = element_blank(),
+        axis.text.y = element_text(size = 16))
+
+for ( i in 1:20){
+  print(i)
+  vplots_no_gs_tmp <- vplots_no_gs[[i]] +
+    scale_x_discrete(labels=c("Arch 1", "Arch 2", 
+                              "Arch 3", "Arch 4",
+                              "Arch 5")) + 
+    scale_fill_brewer(labels=c("Arch 1", "Arch 2", 
+                               "Arch 3", "Arch 4",
+                               "Arch 5"),
+                      palette = "Set2") +
+    geom_violin() + 
+    labs(title = fcm_no_gs_attri_labs[i], 
+         fill = "Archetype") +
+    theme_bw() + 
+    theme(text = element_text(size = 20),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 16), 
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(size = 16))
+  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_vplots_", Sys.Date(), i, "_labels.png"), 
+         plot = vplots_no_gs_tmp, width = 12, height = 12, dpi = 300)
+}
 
 df_eco <- as.data.frame(fcm_eco_attri, na.rm = TRUE)
 vplots_eco <- violinPlots(df_eco, fcm_eco_model$Groups)
-vplots_eco
+
+for ( i in 1:5){
+  print(i)
+  vplots_eco_tmp <- vplots_eco[[i]] +
+    scale_x_discrete(labels=c("Arch 1", "Arch 2")) + 
+    scale_fill_brewer(labels=c("Arch 1", "Arch 2"),
+                      palette = "Set2") +
+    geom_violin() + 
+    labs(title = fcm_eco_attri_labs[i], 
+         fill = "Archetype") +
+    theme_bw() + 
+    theme(text = element_text(size = 20),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 16), 
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(size = 16))
+  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_eco_vplots_", Sys.Date(), i, "_labels.png"), 
+         plot = vplots_eco_tmp, width = 12, height = 12, dpi = 300)
+}
 
 df_rursu1 <- as.data.frame(fcm_rursu01_attri, na.rm = TRUE)
 vplots_rursu1 <- violinPlots(df_rursu1, fcm_rursu01_model$Groups)
-vplots_rursu1
+vplots_rursu1[[5]]
 
-for (i in 1:5){
+for ( i in 1:10){
   print(i)
-  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_eco_vplots_", Sys.Date(), i, ".png"), 
-         plot = vplots_eco[[i]], width = 12, height = 12, dpi = 300)
-}
-
-for (i in 1:10){
-  print(i)
-  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_rursu1_vplots_", Sys.Date(), i, ".png"), 
+  vplots_no_gs[[i]] <- vplots_no_gs[[i]] +
+    scale_x_discrete(labels=c("Arch 1", "Arch 2",
+                              "Arch 3", "Arch 4",
+                              "Arch 5", "Arch 6",
+                              "Arch 7")) + 
+    scale_fill_brewer(labels=c("Arch 1", "Arch 2",
+                               "Arch 3", "Arch 4",
+                               "Arch 5", "Arch 6",
+                               "Arch 7"),
+                      palette = "Set2") +
+    geom_violin() + 
+    labs(title = fcm_rursu01_attri_labs[i], 
+         fill = "Archetype") +
+    theme_bw() + 
+    theme(text = element_text(size = 20),
+          axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 16), 
+          axis.title.y = element_blank(),
+          axis.text.y = element_text(size = 16))
+  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_rursu1_vplots_", Sys.Date(), i, "_labels.png"), 
          plot = vplots_rursu1[[i]], width = 12, height = 12, dpi = 300)
-}
-
-for (i in 1:20){
-  print(i)
-  ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_vplots_", Sys.Date(), i, ".png"), 
-         plot = vplots_no_gs[[i]], width = 12, height = 12, dpi = 300)
 }
 
 ## Create maps of the attributes
