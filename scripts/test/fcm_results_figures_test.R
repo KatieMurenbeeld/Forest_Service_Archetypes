@@ -259,8 +259,7 @@ no_gs_prelim_quad <- ggplot(data = no_gs_var_test,
                               "Arch 5", "Arch 6",
                               "Arch 7"),
                      palette = "Set2") +
-  labs(title = "Preliminary Quadrants for Potental Fit",
-       subtitle = "SES Archetypes",
+  labs(title = "Within Archetype Variance",
        x = "Average of Social Attribute Variance",
        y = "Average of Ecological Attribute Variance") +
   theme_bw() + 
