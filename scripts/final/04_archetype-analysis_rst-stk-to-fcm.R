@@ -325,41 +325,41 @@ ggsave(here::here("figures/FCM_eco_ex_inert.png"), ex.inert.eco,
 
 
 #---Run the FCMs standardize is set to FALSE because the data is scaled------
-FCM_result_all <- CMeans(dataset_all, k = 5, m = 1.875, standardize = FALSE)
+FCM_result_all <- CMeans(dataset_all, k = 5, m = 1.875, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_all, here::here(paste0("data/processed/FCM_all_", Sys.Date(), ".rds")))
 map.res.all <- rast(FCM_result_all$rasters)
 plot(map.res.all[["Groups"]])
 writeRaster(map.res.all[["Groups"]], filename = paste0("data/processed/FCM_all_", Sys.Date(), ".tif"))
 
-FCM_result_ru_rs_u_01 <- CMeans(dataset_ru_rs_u, k = 7, m = 1.625, standardize = FALSE)
+FCM_result_ru_rs_u_01 <- CMeans(dataset_ru_rs_u, k = 7, m = 1.625, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_ru_rs_u_01, here::here(paste0("data/processed/FCM_ru_rs_u_01_", Sys.Date(), ".rds")))
 map.res.ru.rs.u.01 <- rast(FCM_result_ru_rs_u_01$rasters)
 plot(map.res.ru.rs.u.01[["Groups"]])
 writeRaster(map.res.ru.rs.u.01[["Groups"]], filename = paste0("data/processed/FCM_ru_rs_u_01_", Sys.Date(), ".tif"))
 
-FCM_result_ru_rs_u_02 <- CMeans(dataset_ru_rs_u, k = 2, m = 1.875, standardize = FALSE)
+FCM_result_ru_rs_u_02 <- CMeans(dataset_ru_rs_u, k = 2, m = 1.875, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_ru_rs_u_02, here::here(paste0("data/processed/FCM_ru_rs_u_02_", Sys.Date(), ".rds")))
 map.res.ru.rs.u.02 <- rast(FCM_result_ru_rs_u_02$rasters)
 plot(map.res.ru.rs.u.02[["Groups"]])
 writeRaster(map.res.ru.rs.u.02[["Groups"]], filename = paste0("data/processed/FCM_ru_rs_u_02_", Sys.Date(), ".tif"))
 
-FCM_result_s_eco <- CMeans(dataset_s_eco, k = 5, m = 1.7, standardize = FALSE)
+FCM_result_s_eco <- CMeans(dataset_s_eco, k = 5, m = 1.7, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_s_eco, here::here(paste0("data/process/FCM_s_eco_", Sys.Date(), ".rds")))
 map.res.s.eco <- rast(FCM_result_s_eco$rasters)
 writeRaster(map.res.s.eco[["Groups"]], filename = paste0("data/processed/FCM_s_eco_", Sys.Date(), ".tif"))
 
-FCM_result_gs <- CMeans(dataset_gs, k = 5, m = 1.7, standardize = FALSE)
+FCM_result_gs <- CMeans(dataset_gs, k = 5, m = 1.7, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_gs, here::here(paste0("data/process/FCM_gs_", Sys.Date(), ".rds")))
 map.res.gs <- rast(FCM_result_gs$rasters)
 writeRaster(map.res.gs[["Groups"]], filename = paste0("data/processed/FCM_gs_", Sys.Date(), ".tif"))
 
-FCM_result_no_gs <- CMeans(dataset_no_gs, k = 5, m = 1.875, standardize = FALSE)
+FCM_result_no_gs <- CMeans(dataset_no_gs, k = 5, m = 1.875, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_no_gs, here::here(paste0("data/processed/FCM_no_gs_", Sys.Date(), ".rds")))
 map.res.no.gs <- rast(FCM_result_no_gs$rasters)
 plot(map.res.no.gs[["Groups"]])
 writeRaster(map.res.no.gs[["Groups"]], filename = paste0("data/processed/FCM_no_gs_", Sys.Date(), ".tif"))
 
-FCM_result_eco <- CMeans(dataset_eco, k = 2, m = 1.125, standardize = FALSE)
+FCM_result_eco <- CMeans(dataset_eco, k = 2, m = 1.125, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_eco, here::here(paste0("data/processed/FCM_eco_", Sys.Date(), ".rds")))
 map.res.eco <- rast(FCM_result_eco$rasters)
 plot(map.res.eco[["Groups"]])
