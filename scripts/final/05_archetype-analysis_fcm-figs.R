@@ -84,7 +84,7 @@ fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
 
 fcm_nf_map <- ggplot() +
   geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
-  geom_sf(data = fs_nf.proj, fill = NA, color = "black", linewidth = 2) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black", linewidth = 1.25) +
   scale_fill_brewer(palette = "Set2") +
   labs(title = "FCM SES Attributes: k=5, m=1.875", 
        fill = "Archetypes") +
@@ -95,6 +95,26 @@ fcm_nf_map <- ggplot() +
 
 fcm_nf_map
 ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+
+## Create a map of the clusters with the Region and National Forest boundaries
+fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
+
+fcm_reg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+fcm_reg_nf_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_reg_nf_map_", Sys.Date(), ".png"), plot = fcm_reg_nf_map, width = 12, height = 12, dpi = 300)  
 
 # Maps for Idaho, California, Minnesota, Alabama
 id_fcm_result <- crop(fcm_no_gs_result, id_proj, mask = TRUE)
@@ -131,13 +151,15 @@ fcm.ca <- ca_fcm_result$Groups %>% as.data.frame(xy = TRUE)
 fcm_ca_map <- ggplot() +
   geom_raster(aes(x = fcm.ca$x, y = fcm.ca$y, fill = as.factor(fcm.ca$Groups))) +
   geom_sf(data = ca_proj, fill = NA, color = "black",  linewidth = 1) +
-  geom_sf(data = ca_nf_int, fill = NA, color = "black",  linewidth = 2) +
-  geom_sf(data = ca_nf_int %>% filter(FORESTORGC == "0511"), fill = NA, color = "red",  linewidth = 2) + 
+  geom_sf(data = ca_nf_int, fill = NA, color = "black",  linewidth = 1.5) +
+  geom_sf(data = ca_nf_int %>% filter(FORESTORGC == "0511"), fill = NA, color = "red",  linewidth = 1.75) + 
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+  labs(title = "FCM SES Attributes: k=5, m=1.875",
+       subtitle = "California: Plumas National Forest",
        fill = "Archetypes") +
   theme_bw() + 
-  theme(legend.position = "bottom",
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank())
 
@@ -149,13 +171,15 @@ fcm.mn <- mn_fcm_result$Groups %>% as.data.frame(xy = TRUE)
 fcm_mn_map <- ggplot() +
   geom_raster(aes(x = fcm.mn$x, y = fcm.mn$y, fill = as.factor(fcm.mn$Groups))) +
   geom_sf(data = mn_proj, fill = NA, color = "black",  linewidth = 1) +
-  geom_sf(data = mn_nf_int, fill = NA, color = "black", linewidth = 2) +
-  geom_sf(data = mn_nf_int %>% filter(FORESTORGC == "0909"), fill = NA, color = "red", linewidth = 3) + 
+  geom_sf(data = mn_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = mn_nf_int %>% filter(FORESTORGC == "0909"), fill = NA, color = "red", linewidth = 1.75) + 
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+  labs(title = "FCM SES Attributes: k=5, m=1.875",
+       subtitle = "Minnesota: Superior National Forest", 
        fill = "Archetypes") +
   theme_bw() + 
-  theme(legend.position = "bottom",
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank())
 
@@ -167,21 +191,103 @@ fcm.al <- al_fcm_result$Groups %>% as.data.frame(xy = TRUE)
 
 fcm_al_map <- ggplot() +
   geom_raster(aes(x = fcm.al$x, y = fcm.al$y, fill = as.factor(fcm.al$Groups))) +
-  geom_sf(data = al_proj, fill = NA, color = "black", linewidth = 2) +
-  geom_sf(data = al_nf_int, fill = NA, color = "black", linewidth = 2) +
-  geom_sf(data = al_nf_int %>% filter(FORESTORGC == "0801"), fill = NA, color = "red", linewidth = 3) + 
+  geom_sf(data = al_proj, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = al_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = al_nf_int %>% filter(FORESTORGC == "0801"), fill = NA, color = "red", linewidth = 1.75) + 
   scale_fill_manual(values = c("#8DA0CB", "#E78AC3")) + 
   labs(title = "FCM SES Attributes: k=5, m=1.875", 
-       subtitle = "Alabama National Forests",
+       subtitle = "Alabama: Alabama National Forests",
        fill = "Archetypes") +
   theme_bw() + 
-  theme(legend.position = "bottom",
+  theme(text = element_text(size = 20),
+        legend.position = "none",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank())
 
 fcm_al_map
 ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_al_nf_map_", Sys.Date(), ".png"), plot = fcm_al_map, width = 12, height = 12, dpi = 300)  
 
+### Create a patchwork of the 4 state maps
+
+patch1 <- fcm_id_map + fcm_ca_map
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_states_patch1_", Sys.Date(), ".png"), plot = patch1, width = 12, height = 12, dpi = 300)  
+
+### create simplified state maps and combine into patch
+simp_al_map <- ggplot() +
+  geom_raster(aes(x = fcm.al$x, y = fcm.al$y, fill = as.factor(fcm.al$Groups))) +
+  geom_sf(data = al_proj, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = al_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = al_nf_int %>% filter(FORESTORGC == "0801"), fill = NA, color = "red", linewidth = 1.75) + 
+  scale_fill_manual(values = c("#8DA0CB", "#E78AC3")) + 
+  labs(title = "D) Alabama", 
+       subtitle = "Alabama National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 18),
+        legend.position = "none",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"))
+simp_al_map
+
+simp_id_map <- ggplot() +
+  geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
+  geom_sf(data = id_proj, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = id_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = id_nf_int %>% filter(FORESTORGC == "0402"), fill = NA, color = "red", linewidth = 1.75) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "A) Idaho", 
+       subtitle = "Boise National Forest") +
+  theme_bw() + 
+  theme(text = element_text(size = 18),
+        legend.position = "none",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"))
+
+simp_id_map
+
+simp_ca_map <- ggplot() +
+  geom_raster(aes(x = fcm.ca$x, y = fcm.ca$y, fill = as.factor(fcm.ca$Groups))) +
+  geom_sf(data = ca_proj, fill = NA, color = "black",  linewidth = 1) +
+  geom_sf(data = ca_nf_int, fill = NA, color = "black",  linewidth = 1.5) +
+  geom_sf(data = ca_nf_int %>% filter(FORESTORGC == "0511"), fill = NA, color = "red",  linewidth = 1.75) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "B) California",
+       subtitle = "Plumas National Forest",
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 18),
+        legend.position = "right",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"))
+
+simp_ca_map
+
+simp_mn_map <- ggplot() +
+  geom_raster(aes(x = fcm.mn$x, y = fcm.mn$y, fill = as.factor(fcm.mn$Groups))) +
+  geom_sf(data = mn_proj, fill = NA, color = "black",  linewidth = 1) +
+  geom_sf(data = mn_nf_int, fill = NA, color = "black", linewidth = 1.5) +
+  geom_sf(data = mn_nf_int %>% filter(FORESTORGC == "0909"), fill = NA, color = "red", linewidth = 1.75) + 
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "C) Minnesota",
+       subtitle = "Superior National Forest") +
+  theme_bw() + 
+  theme(text = element_text(size = 18),
+        legend.position = "none",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0,0,0,0),"mm"))
+
+simp_mn_map
+
+patch2 <- simp_id_map + simp_ca_map + simp_mn_map + simp_al_map +
+  plot_annotation(theme = theme(plot.title = element_text(size = 22)))
+patch3 <- fcm_reg_nf_map / (simp_id_map + simp_mn_map + simp_al_map) +
+  plot_layout(heights = c(0.5)) 
+
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_states_patch2_", Sys.Date(), ".png"), plot = patch2, width = 12, height = 12, dpi = 300)
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_states_patch3_", Sys.Date(), ".png"), plot = patch3, width = 20, height = 15, dpi = 300)
 
 ### Create map of archetypes with the Forest Region boundaries
 fcm.all.df <- fcm_all_result$Groups %>% as.data.frame(xy = TRUE)
