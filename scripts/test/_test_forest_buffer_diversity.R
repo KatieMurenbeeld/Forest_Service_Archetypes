@@ -58,21 +58,53 @@ plot(test_nf, add = TRUE, col = "yellow")
 
 # Create a function
 nf_buffers <- function(area_with_nf, area_with_nf_buf_dif){
-  nf_buffs <- list()
+  nf_buffs <- data.frame()
   for (nf in 1:length(area_with_nf)) {
     #print(reg4_nf$FORESTORGC[nf])
     tmp_nf <- area_with_nf %>%
       filter(FORESTORGC == area_with_nf$FORESTORGC[nf])
     tmp_nf_buf <- st_buffer(tmp_nf, dist = 50000)
-    nf_buffs[nf] <- st_intersection(tmp_nf_buf, area_with_nf_buf_dif)
+    tmp_nf_int <- st_intersection(tmp_nf_buf, area_with_nf_buf_dif)
+    nf_buffs <- rbind(nf_buffs, tmp_nf_int)
   }
   return(nf_buffs)
 }
 
 test_buffers <- nf_buffers(reg4_nf, reg4_union_dif)  
+
+for1 <- test_buffers %>%
+  filter(FORESTORGC == "0410")
+for2 <- test_buffers %>%
+  filter(FORESTORGC == "0417")
+for3 <- test_buffers %>%
+  filter(FORESTORGC == "0402")
+
+plot(reg4_union_dif)
+plot(for1$geometry, col = "blue", add = TRUE)
+plot(for2$geometry, col = "red", add = TRUE)
+plot(for3$geometry, col = "green", add = TRUE)
+
+# Try apply
+## make a list of the forest numbers
+
+forest_list <- list()
   
-  
-  
+for (nf in 1:length(reg4_nf)) {
+  tmp <- reg4_nf$FORESTORGC[nf]
+  forest_list <- append(forest_list, tmp)
+}
+
+# shpdatas becomes a list of sp-class objects:
+shpdatas = lapply(shapefiles, read_in_and_check)
+output = do.call(bind, shpdatas)
+
+
+
+
+
+
+#--------------------test code-------------
+
 for (nf in 1:length(reg4_nf)) {
   print(reg4_nf$FORESTORGC[nf])
   tmp_nf <- reg4_nf %>%
