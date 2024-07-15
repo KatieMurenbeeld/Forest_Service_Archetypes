@@ -3,9 +3,11 @@ library(terra)
 library(sf)
 library(ggplot2)
 library(exactextractr)
+library(tigris)
 
 # Load the data
 fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
+fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
 
 fcm_no_gs_attri <- rast("data/processed/rast_fcm_no_gs_2024-06-20.tif")
 fcm_no_gs_result <- rast("data/processed/FCM_no_gs_2024-06-20.tif")
@@ -18,6 +20,12 @@ fs_nf.proj <- fs_nf %>%
   st_transform(., crs=projection)
 
 fs_nf.crop <- st_crop(fs_nf.proj, ext(fcm_no_gs_attri))
+
+fs_reg.proj <- fs_reg %>% 
+  filter(REGION != "10") %>%
+  st_transform(., crs=projection)
+
+fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_no_gs_attri))
 
 # Union all of the national forests
 nf_union <- st_union(fs_nf.crop)
@@ -96,4 +104,49 @@ shan_conus
 
 ## breadcrumb: add region and state boundaries
 
+# create the list of CONUS states 
+us.abbr <- unique(fips_codes$state)[1:51]
+us.name <- unique(fips_codes$state_name)[1:51]
+us.fips <- unique(fips_codes$state_code)[1:51]
 
+us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
+colnames(us.states) <- c("state", "STATENAME", "FIPS")
+us.states$state <- as.character(us.states$state)
+us.states$STATENAME <- as.character(us.states$STATENAME)
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+states <- tigris::states(cb = TRUE)
+
+states <- states %>%
+  filter(STUSPS %in% continental.states$state)
+
+shan_conus_states <- ggplot() +
+  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  geom_sf(data = states, fill = NA, color = "black") +
+  geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
+  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
+  #scale_fill_brewer(palette = "Set2") +
+  labs(title = "Shannon Entropy (H) of Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+shan_conus_states
+
+shan_conus_reg <- ggplot() +
+  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black") +
+  geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
+  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
+  #scale_fill_brewer(palette = "Set2") +
+  labs(title = "Shannon Entropy (H) of Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+shan_conus_reg
