@@ -20,9 +20,9 @@ projection <- "epsg:5070"
 whp_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
 fed_rich <- rast(here::here("data/processed/conus_fed_rich_2024-06-12.tif"))
 fed_pct_area <- rast(here::here("data/processed/conus_fed_pctarea_2024-06-20.tif"))
-forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
+#forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 ## Load in previous raster stack (no areafed, no fedrich, no privfor)
-rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_no_areafed_no_fedrich_no_privfor_2024-06-12.tif"))
+rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_fill_2024-07-19.tif"))
 
 # reproject whp_rast which will be used as the reference raster
 
@@ -34,54 +34,45 @@ resamp <- function(raster, ref_raster, method){
   rast_resamp <- resample(rast_proj, ref_raster, method, threads = TRUE)
 }
 
-forgain_resamp <- resamp(forgain_rast, whp_rast_proj, "bilinear")
-forgain_resamp_crop <- crop(forgain_resamp, whp_rast_proj, mask = TRUE)
+#forgain_resamp <- resamp(forgain_rast, whp_rast_proj, "bilinear")
+#forgain_resamp_crop <- crop(forgain_resamp, whp_rast_proj, mask = TRUE)
 
 fed_rich[is.na(fed_rich)] <- 0
 fed_rich_resamp <- resamp(fed_rich, whp_rast_proj, "near")
-fed_rich_crop <- crop(fed_rich_resamp, rast_stack_no$pct_pay, mask = TRUE)
+fed_rich_crop <- crop(fed_rich_resamp, rast_stack_no$pct_pay_fill, mask = TRUE)
 
 fed_pct_area[is.na(fed_pct_area)] <- 0
 fed_pct_area_resamp <- resamp(fed_pct_area, whp_rast_proj, "near")
-fed_pct_area_crop <- crop(fed_pct_area_resamp, rast_stack_no$pct_pay, mask = TRUE)
+fed_pct_area_crop <- crop(fed_pct_area_resamp, rast_stack_no$pct_pay_fill, mask = TRUE)
 
 ## Stack on the final attributes
-rast_stack <- c(rast_stack_no, fed_rich_crop, fed_pct_area_crop, forgain_resamp_crop)
+rast_stack <- c(rast_stack_no, fed_rich_crop, fed_pct_area_crop)
 
 stand_age <- rast_stack$conus_age06_1km
 stand_age[is.na(stand_age)] <- 0 
-stand_age_crop <- crop(stand_age, rast_stack$pct_pay, mask = TRUE)
+stand_age_crop <- crop(stand_age, rast_stack$pct_pay_fill, mask = TRUE)
 names(stand_age_crop)
 names(stand_age_crop) <- "stand_age"
 rast_stack_treeage <- c(rast_stack, stand_age_crop)
 
+## Remove any "conus_age06_1km"
 
+rast_stack_final <- subset(rast_stack_treeage, "conus_age06_1km", negate = TRUE)
+
+##---I don't think I need to do this focal anymore----
 # I think I may want to run a focal on all layers to get rid of more NAs? make sure to rename columns
-names(rast_stack_treeage)
-s <- sapp(rast_stack_treeage, fun = function(x, ...) {focal(x, fun = "mean", w = matrix(1, 3, 3), na.rm = TRUE, na.policy="only")})
+#names(rast_stack_treeage)
+#s <- sapp(rast_stack_treeage, fun = function(x, ...) {focal(x, fun = "mean", w = matrix(1, 3, 3), na.rm = TRUE, na.policy="only")})
 
-for (i in 1:length(names(rast_stack_treeage))) {
+#for (i in 1:length(names(rast_stack_treeage))) {
   #print(names(rast_stack_treea_forprod[[i]]))
-  names(s[[i]]) <- paste0(names(rast_stack_treeage[[i]]), "_focal_mean")
-}
+#  names(s[[i]]) <- paste0(names(rast_stack_treeage[[i]]), "_focal_mean")
+#}
 #names(s)
 
-forest_prod <- rast_stack$mn_prd_
-forest_prod_focal <- focal(forest_prod, w = matrix(1, 27, 27), fun = "mean", na.rm = TRUE)
-forest_prod_crop <- crop(forest_prod_focal, rast_stack$pct_pay, mask = TRUE)
-names(forest_prod_crop) <- "forest_prod_focal_mean"
-
-# create final raster stack
-rast_stack_treea_forprod <- c(s, forest_prod_crop)
-
-rast_stack_fcm <- rast_stack_treea_forprod[[-17]]
-names(rast_stack_fcm)  
-rast_stack_fcm <- rast_stack_fcm[[-8]]
-plot(rast_stack_fcm[[1:10]])
-plot(rast_stack_fcm[[11:19]])
-
+#----save final raster stack----
 ## save the raster stack for use in 04_archetype-analysis_fcm-analysis.R
-writeRaster(rast_stack_fcm, here::here(paste0("data/processed/rast_stack_noprivfor_", Sys.Date(), ".tif")), overwrite = TRUE)
+writeRaster(rast_stack_final, here::here(paste0("data/processed/rast_stack_full_", Sys.Date(), ".tif")), overwrite = TRUE)
 
 #---Process raster for use with geocmeans----
 
