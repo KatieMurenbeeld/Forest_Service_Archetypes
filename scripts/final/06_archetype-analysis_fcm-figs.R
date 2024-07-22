@@ -29,13 +29,27 @@ fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-07-22.ti
 fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-07-22.tif")
 fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-07-22.rds")
 
+fcm_poli_nogs_attri <- rast("data/processed/rast_fcm_poli_nogs_2024-07-22.tif")
+fcm_poli_nogs_result_01 <- rast("data/processed/FCM_poli_nogs_01_2024-07-22.tif")
+fcm_poli_nogs_result_02 <- rast("data/processed/FCM_poli_nogs_02_2024-07-22.tif")
+fcm_poli_nogs_1 <- readRDS("data/processed/FCM_poli_nogs_01_2024-07-22.rds")
+fcm_poli_nogs_2 <- readRDS("data/processed/FCM_poli_nogs_02_2024-07-22.rds")
+
 ### Built in spider and violin plots
 df_all <- as.data.frame(fcm_all_attri, na.rm = TRUE)
 df_pmrc <- as.data.frame(fcm_pmrc_attri, na.rm = TRUE)
 df_pmrc_poli <- as.data.frame(fcm_pmrc_poli_attri, na.rm = TRUE)
+df_poli_nogs <- as.data.frame(fcm_poli_nogs_attri, na.rm = TRUE)
 
 spiderPlots(df_all, fcm_all$Belongings, 
             chartcolors = c("darkorange3", "grey", "royalblue"))
+
+spiderPlots(df_poli_nogs, fcm_poli_nogs_1$Belongings, 
+            chartcolors = c("darkorange3", "grey", "royalblue"))
+
+spiderPlots(df_poli_nogs, fcm_poli_nogs_2$Belongings, 
+            chartcolors = c("darkorange3", "grey", "royalblue",
+                            "goldenrod", "seagreen"))
 
 spiderPlots(df_pmrc, fcm_pmrc$Belongings)
 
