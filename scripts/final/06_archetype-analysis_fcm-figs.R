@@ -17,17 +17,31 @@ fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
 fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
 #conus_attri_all <- rast("data/processed/rast_fcm_2024-05-29.tif") # raster stack given to FCM model
 #map.conus <- rast("data/processed/FCM_2024-05-29.tif") # FCM results raster
-fcm_all_attri <- rast("data/processed/rast_fcm_all_2024-06-20.tif")
-fcm_all_result <- rast("data/processed/FCM_all_2024-06-20.tif") 
+fcm_all_attri <- rast("data/processed/rast_fcm_all_2024-07-22.tif")
+fcm_all_result <- rast("data/processed/FCM_all_2024-07-22.tif") 
+fcm_all <- readRDS("data/processed/FCM_all_2024-07-22.rds")
 
-fcm_no_gs_attri <- rast("data/processed/rast_fcm_no_gs_2024-06-20.tif")
-fcm_no_gs_result <- rast("data/processed/FCM_no_gs_2024-06-20.tif")
+fcm_pmrc_attri <- rast("data/processed/rast_fcm_pmrc2024_2024-07-22.tif")
+fcm_pmrc_result <- rast("data/processed/FCM_pmrc_2024-07-22.tif")
+fmc_pmrc <- readRDS("data/processed/FCM_pmrc_2024-07-22.rds")
 
-fcm_rursu01_attri <- rast("data/processed/rast_fcm_ru_rs_u2024-06-20.tif")
-fcm_rursu01_result <- rast("data/processed/FCM_ru_rs_u_01_2024-06-20.tif")
+fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-07-22.tif")
+fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-07-22.tif")
+fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-07-22.rds")
 
-fcm_eco_attri <- rast("data/processed/rast_fcm_eco2024-06-21.tif")
-fcm_eco_result <- rast("data/processed/FCM_eco_2024-06-21.tif")
+### Built in spider and violin plots
+df_all <- as.data.frame(fcm_all_attri, na.rm = TRUE)
+df_pmrc <- as.data.frame(fcm_pmrc_attri, na.rm = TRUE)
+df_pmrc_poli <- as.data.frame(fcm_pmrc_poli_attri, na.rm = TRUE)
+
+spiderPlots(df_all, fcm_all$Belongings, 
+            chartcolors = c("darkorange3", "grey", "royalblue"))
+
+spiderPlots(df_pmrc, fcm_pmrc$Belongings)
+
+spiderPlots(df_pmrc_poli, fcm_pmrc_poli$Belongings)
+
+violinPlots(df_all, fcm_all$Groups)
 
 ## Reproject the forest service shapes to NAD83
 projection <- "epsg: 5070"
