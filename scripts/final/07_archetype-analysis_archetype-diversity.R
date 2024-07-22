@@ -121,7 +121,7 @@ states <- states %>%
 
 shan_conus_states <- ggplot() +
   #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
-  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.1) +
   geom_sf(data = states, fill = NA, color = "black") +
   geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
   #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
@@ -134,6 +134,8 @@ shan_conus_states <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_states
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_states_", Sys.Date(), ".png"), plot = shan_conus_states, width = 12, height = 12, dpi = 300)  
+
 
 shan_conus_reg <- ggplot() +
   #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
@@ -150,3 +152,62 @@ shan_conus_reg <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_reg
+
+
+#----What does this mean for NEPA assessment times?----
+
+# load pals data
+
+pals_df <- read_delim("~/Analysis/NEPA_Efficiency/data/original/pals_ongoing_projects_11-2022.csv", delim = ";")
+
+# selected forests from PMRC draft
+pals_df_sel <- pals_df %>%
+  filter(FOREST_ID %in% c("0511", "0909", "0402", "0801")) %>%
+  filter(as.Date(`INITIATION DATE`, format = "%m/%d/%Y") >= "2009-01-01") %>%
+  group_by(FOREST_ID, `DECISION TYPE`) %>%
+  summarise(ave_days = mean(`ELAPSED DAYS`, na.rm = TRUE),
+            count = n())
+
+pals_count <- pals_df %>% 
+  select(FOREST_ID, `DECISION TYPE`) %>%
+  filter(FOREST_ID %in% c("0511", "0909", "0402", "0801")) %>%
+  group_by(FOREST_ID, `DECISION TYPE`) %>% 
+  summarise(count = n())
+
+pals_df_edays <- pals_df %>%
+  filter(as.Date(`INITIATION DATE`, format = "%m/%d/%Y") >= "2009-01-01") %>%
+  group_by(FOREST_ID, `DECISION TYPE`) %>%
+  summarise(ave_days = mean(`ELAPSED DAYS`, na.rm = TRUE),
+            count = n())
+shan_df <- shan_h %>%
+  select(FORESTORGC, shan_div)
+
+pals_edays_shanh <- left_join(pals_df_edays, shan_df, by = c("FOREST_ID" = "FORESTORGC"))
+
+edays_shanh_plot <- ggplot(pals_edays_shanh, aes(shan_div, ave_days)) +
+  geom_point(aes(color = factor(`DECISION TYPE`)))
+edays_shanh_plot
+
+hist(pals_edays_shanh$ave_days)
+hist(pals_edays_shanh$shan_div)
+
+test_hist <- ggplot(pals_edays_shanh) +
+  geom_histogram(aes(mapping = shan_div, color = factor(`DECISION TYPE`)))
+test_hist
+
+test_shandiv <- pals_edays_shanh %>%
+  ggplot( aes(x=shan_div, fill=factor(`DECISION TYPE`))) +
+  geom_histogram( color="#e9ecef", alpha=0.5, position = 'identity') +
+  scale_fill_manual(values=c("#69b3a2", "#404080", "#404")) +
+  facet_wrap(~factor(`DECISION TYPE`)) +
+  theme_bw() +
+  labs(fill="")
+test_shandiv
+
+test_days <- pals_edays_shanh %>%
+  ggplot( aes(x=ave_days, fill=factor(`DECISION TYPE`))) +
+  geom_histogram( color="#e9ecef", alpha=0.6, position = 'identity') +
+  scale_fill_manual(values=c("#69b3a2", "#404080", "#404")) +
+  theme_bw() +
+  labs(fill="")
+test_days
