@@ -71,7 +71,7 @@ conus_prod <- dplyr::select(fia$COND, STATECD, COUNTYCD, SITECLCD)
 # 2. Create a GEOID column
 ## create a GEOID of the of the county and state codes (make the FIPS code) to 
 ## easily join to counties and to better group and summarise
-conus_prod <- conus_age_prod %>%
+conus_prod <- conus_prod %>%
   mutate(GEOID = paste0(str_pad(as.character(STATECD), 2, pad = "0"), str_pad(COUNTYCD, 3, pad = "0")))
 
 # 3. Update the productivity code and replace -999 with NA in STDAGE
@@ -104,18 +104,31 @@ conus_prod_grp <- conus_prod %>%
 conus_prod_sf <- st_as_sf(left_join(conus_prod_grp, counties, by = "GEOID"))
 
 # 6. Check and fix validity
-all(st_is_valid(conus_age_prod_sf))
+all(st_is_valid(conus_prod_sf))
 
 ## Check for empty geometries and invalid or corrupt geometries 
-any(st_is_empty(conus_age_prod_sf))
+any(st_is_empty(conus_prod_sf))
 index <- st_touches(conus_prod_sf, conus_prod_sf)
+
 conus_prod_fill_sf <- conus_prod_sf %>% 
   mutate(mean_prod_fill = ifelse(is.na(mean_prod),
-                            apply(index, 1, function(i){mean(.$mean_prod[i])}),
-                            mean_prod))
-any(st_is_empty(output))
+                                 apply(index, 1, function(i){mean(.$mean_prod[i], na.rm = TRUE)}),
+                                 mean_prod))
+# have to do it twice because some na counties have all na neighboring counties
 
-conus_age_prod_sf_noempty <- conus_age_prod_sf[!st_is_empty(conus_age_prod_sf),]
+conus_prod_fill_sf <- conus_prod_fill_sf %>% 
+  mutate(mean_prod_fill = ifelse(is.na(mean_prod_fill),
+                                 apply(index, 1, function(i){mean(.$mean_prod_fill[i], na.rm = TRUE)}),
+                                 mean_prod_fill))
+
+
+ggplot(data = conus_prod_fill_sf) +
+  geom_sf(aes(fill = mean_prod_fill)) +
+  theme_bw()
+
+any(st_is_empty(conus_prod_fill_sf))
+
+conus_age_prod_sf_noempty <- conus_prod_fill_sf[!st_is_empty(conus_prod_fill_sf),]
 any(st_is_empty(conus_age_prod_sf_noempty))
 any(is.na(st_is_valid(conus_age_prod_sf_noempty)))
 #any(na.omit(st_is_valid(conus_age_prod_sf)) == FALSE)
@@ -123,14 +136,10 @@ st_is_longlat(conus_age_prod_sf_noempty)
 
 ## Double check plots
 ggplot() +
-  geom_sf(data = conus_prod_sf, mapping = aes(color = max_prodcd, fill = max_prodcd))
-ggplot() +
-  geom_sf(data = conus_prod_sf, mapping = aes(color = min_prodcd, fill = min_prodcd))
-ggplot() +
-  geom_sf(data = output, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
+  geom_sf(data = conus_age_prod_sf_noempty, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
 
 # 7. Save the validated shapefile
-write_sf(obj = conus_prod_fill_sf, dsn = here::here("data/processed/conus_prod_fia.shp"), overwrite = TRUE, append = FALSE)
+write_sf(obj = conus_age_prod_sf_noempty, dsn = here::here("data/processed/conus_prod_fill_fia.shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
 
