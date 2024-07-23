@@ -37,11 +37,14 @@ fcm_poli_nogs_2 <- readRDS("data/processed/FCM_poli_nogs_02_2024-07-22.rds")
 
 ### Built in spider and violin plots
 df_all <- as.data.frame(fcm_all_attri, na.rm = TRUE)
+df_all_sc <- as.data.frame((fcm_all_attri - global(fcm_all_attri, "min", na.rm=TRUE)[,1])/(global(fcm_all_attri, "max", na.rm=TRUE)[,1] - global(fcm_all_attri, "min", na.rm=TRUE)[,1]),
+                           na.rm = TRUE)
+
 df_pmrc <- as.data.frame(fcm_pmrc_attri, na.rm = TRUE)
 df_pmrc_poli <- as.data.frame(fcm_pmrc_poli_attri, na.rm = TRUE)
 df_poli_nogs <- as.data.frame(fcm_poli_nogs_attri, na.rm = TRUE)
 
-spiderPlots(df_all, fcm_all$Belongings, 
+spiderPlots(df_all_sc, fcm_all$Belongings, 
             chartcolors = c("darkorange3", "grey", "royalblue"))
 
 spiderPlots(df_poli_nogs, fcm_poli_nogs_1$Belongings, 
@@ -55,7 +58,7 @@ spiderPlots(df_pmrc, fcm_pmrc$Belongings)
 
 spiderPlots(df_pmrc_poli, fcm_pmrc_poli$Belongings)
 
-violinPlots(df_all, fcm_all$Groups)
+violinPlots(df_all_sc, fcm_all$Groups)
 
 ## Reproject the forest service shapes to NAD83
 projection <- "epsg: 5070"
