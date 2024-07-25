@@ -41,8 +41,16 @@ df_all_sc <- as.data.frame((fcm_all_attri - global(fcm_all_attri, "min", na.rm=T
                            na.rm = TRUE)
 
 df_pmrc <- as.data.frame(fcm_pmrc_attri, na.rm = TRUE)
+df_pmrc_sc <- as.data.frame((fcm_pmrc_attri - global(fcm_pmrc_attri, "min", na.rm=TRUE)[,1])/(global(fcm_pmrc_attri, "max", na.rm=TRUE)[,1] - global(fcm_pmrc_attri, "min", na.rm=TRUE)[,1]),
+                           na.rm = TRUE)
+
 df_pmrc_poli <- as.data.frame(fcm_pmrc_poli_attri, na.rm = TRUE)
+df_pmrc_poli_sc <- as.data.frame((fcm_pmrc_poli_attri - global(fcm_pmrc_poli_attri, "min", na.rm=TRUE)[,1])/(global(fcm_pmrc_poli_attri, "max", na.rm=TRUE)[,1] - global(fcm_pmrc_poli_attri, "min", na.rm=TRUE)[,1]),
+                            na.rm = TRUE)
+
 df_poli_nogs <- as.data.frame(fcm_poli_nogs_attri, na.rm = TRUE)
+df_poli_nogs_sc <- as.data.frame((fcm_poli_nogs_attri - global(fcm_poli_nogs_attri, "min", na.rm=TRUE)[,1])/(global(fcm_poli_nogs_attri, "max", na.rm=TRUE)[,1] - global(fcm_poli_nogs_attri, "min", na.rm=TRUE)[,1]),
+                                 na.rm = TRUE)
 
 spiderPlots(df_all_sc, fcm_all$Belongings, 
             chartcolors = c("darkorange3", "grey", "royalblue"))
@@ -59,6 +67,14 @@ spiderPlots(df_pmrc, fcm_pmrc$Belongings)
 spiderPlots(df_pmrc_poli, fcm_pmrc_poli$Belongings)
 
 violinPlots(df_all_sc, fcm_all$Groups)
+
+violinPlots(df_pmrc_sc, fcm_pmrc$Groups)
+
+violinPlots(df_pmrc_poli_sc, fcm_pmrc_poli$Groups)
+
+violinPlots(df_poli_nogs_sc, fcm_poli_nogs_1$Groups)
+
+violinPlots(df_poli_nogs_sc, fcm_poli_nogs_2$Groups)
 
 ## Reproject the forest service shapes to NAD83
 projection <- "epsg: 5070"
