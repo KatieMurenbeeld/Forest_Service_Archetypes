@@ -21,7 +21,7 @@ fcm_poli_nogs_2 <- readRDS("data/processed/FCM_poli_nogs_02_2024-07-22.rds")
 #----All----
 all_bootvalues <- boot_group_validation(fcm_all, nsim = 100, maxiter = 100, 
                                     tol = 0.0001, verbose = FALSE)
-
+saveRDS(all_bootvalues, here::here("data/processed/all_bootvalues.RDS"))
 
 all_melted_df <- reshape2::melt(all_bootvalues$group_consistency)
 
@@ -29,13 +29,14 @@ all_melted_df$variable <- as.factor(all_melted_df$variable)
 
 ggplot() +
   geom_histogram(mapping = aes(x = value), data = all_melted_df, bins = 30) +
-  labs(title = "stability of clusters", subtitle = "for 100 iterations",
+  labs(title = "all attributes: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=3)
 
 #----PMRC----
 pmrc_bootvalues <- boot_group_validation(fcm_pmrc, nsim = 100, maxiter = 100, 
                                         tol = 0.0001, verbose = FALSE)
+saveRDS(pmrc_bootvalues, here::here("data/processed/pmrc_bootvalues.RDS"))
 
 pmrc_melted_df <- reshape2::melt(pmrc_bootvalues$group_consistency)
 
@@ -43,27 +44,30 @@ pmrc_melted_df$variable <- as.factor(pmrc_melted_df$variable)
 
 ggplot() +
   geom_histogram(mapping = aes(x = value), data = pmrc_melted_df, bins = 30) +
-  labs(title = "stability of clusters", subtitle = "for 100 iterations",
+  labs(title = "pmrc attributes: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
 
 #---PMRC-Poli----
-pmrc-poli_bootvalues <- boot_group_validation(fcm_pmrc_poli, nsim = 100, maxiter = 100, 
+pmrc_poli_bootvalues <- boot_group_validation(fcm_pmrc_poli, nsim = 100, maxiter = 100, 
                                          tol = 0.0001, verbose = FALSE)
+saveRDS(pmrc_poli_bootvalues, here::here("data/processed/pmrc_poli_bootvalues.RDS"))
 
-pmrc-poli_melted_df <- reshape2::melt(pmrc-poli_bootvalues$group_consistency)
 
-pmrc-poli_melted_df$variable <- as.factor(pmrc-poli_melted_df$variable)
+pmrc_poli_melted_df <- reshape2::melt(pmrc_poli_bootvalues$group_consistency)
+
+pmrc_poli_melted_df$variable <- as.factor(pmrc_poli_melted_df$variable)
 
 ggplot() +
-  geom_histogram(mapping = aes(x = value), data = pmrc-poli_melted_df, bins = 30) +
-  labs(title = "stability of clusters", subtitle = "for 100 iterations",
+  geom_histogram(mapping = aes(x = value), data = pmrc_poli_melted_df, bins = 30) +
+  labs(title = "pmrc with aip: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
 
 #----Poli-no-GS-01----
 poli_nogs01_bootvalues <- boot_group_validation(fcm_poli_nogs_1, nsim = 100, maxiter = 100, 
                                               tol = 0.0001, verbose = FALSE)
+saveRDS(poli_nogs01_bootvalues, here::here("data/processed/poli_nogs01_bootvalues.RDS"))
 
 poli_nogs01_melted_df <- reshape2::melt(poli_nogs01_bootvalues$group_consistency)
 
@@ -71,13 +75,14 @@ poli_nogs01_melted_df$variable <- as.factor(poli_nogs01_melted_df$variable)
 
 ggplot() +
   geom_histogram(mapping = aes(x = value), data = poli_nogs01_melted_df, bins = 30) +
-  labs(title = "stability of clusters", subtitle = "for 100 iterations",
+  labs(title = "no GS with aip v01:stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
-  facet_wrap(vars(variable), ncol=2)
+  facet_wrap(vars(variable), ncol=3)
 
 #----Poli-no-GS-02----
 poli_nogs02_bootvalues <- boot_group_validation(fcm_poli_nogs_2, nsim = 100, maxiter = 100, 
                                                 tol = 0.0001, verbose = FALSE)
+saveRDS(poli_nogs02_bootvalues, here::here("data/processed/poli_nogs02_bootvalues.RDS"))
 
 poli_nogs02_melted_df <- reshape2::melt(poli_nogs02_bootvalues$group_consistency)
 
@@ -85,6 +90,6 @@ poli_nogs02_melted_df$variable <- as.factor(poli_nogs02_melted_df$variable)
 
 ggplot() +
   geom_histogram(mapping = aes(x = value), data = poli_nogs02_melted_df, bins = 30) +
-  labs(title = "stability of clusters", subtitle = "for 100 iterations",
+  labs(title = "no GS with aip v02: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
