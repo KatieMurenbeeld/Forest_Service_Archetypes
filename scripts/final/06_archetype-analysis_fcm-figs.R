@@ -20,6 +20,7 @@ fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
 fcm_all_attri <- rast("data/processed/rast_fcm_all_2024-07-22.tif")
 fcm_all_result <- rast("data/processed/FCM_all_2024-07-22.tif") 
 fcm_all <- readRDS("data/processed/FCM_all_2024-07-22.rds")
+map.res.all <- rast(fcm_all$rasters)
 
 fcm_pmrc_attri <- rast("data/processed/rast_fcm_pmrc2024_2024-07-22.tif")
 fcm_pmrc_result <- rast("data/processed/FCM_pmrc_2024-07-22.tif")
@@ -102,38 +103,17 @@ mn_proj <- states_proj %>%
 # get shape fil
 
 ## Check and rename the attributes in each raster stack
-names(fcm_no_gs_attri)
-fcm_no_gs_attri_labs <- c("% Forest Pay", "Community Capital",
-                          "Net Migration 2020-2023", "% Less High School",
-                          "% Families Housing Burden", "% Household Energy Cost",
-                          "PM2.5 particle/m3", "Dist. to wilderness area, m", 
-                          "Dist. to critical habitat, m", "Wildfire Hazard Potential",
-                          "% Change in Mill Capacity 2019-2024", "Precip. Seasonality",
-                          "Temp. Seasonality", "Topo. Roughness", 
-                          "Travel time to >20000 city, min", "% Area Tree Cover", 
-                          "# Federal Agencies", "% Area with Forest Gain 2000-2012",
-                          "Ave Stand Age", "Ave. Forest Productivity cuft/ac2/yr")
-
-names(fcm_eco_attri)
-fcm_eco_attri_labs <- c("PM2.5 particle/m3", "Wildfire Hazard Potential",
-                        "Precip. Seasonality", "Temp. Seasonality", "Topo. Roughness")
-
-names(fcm_rursu01_attri)
-fcm_rursu01_attri_labs <- c("% Forest Pay", "Community Capital",
-                            "% Families Housing Burden", "% Household Energy Cost",
-                            "Travel time to >20000 city, min", "% Area Tree Cover", 
-                            "% Area with Forest Gain 2000-2012", "Ave Stand Age", 
-                            "Ave. Forest Productivity cuft/ac2/yr")
+names(fcm_all_attri)
 
 
 ## Create a map of the clusters with the National Forest boundaries
-fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
+fcm.all.df <- fcm_all_result$Groups %>% as.data.frame(xy = TRUE)
 
 fcm_nf_map <- ggplot() +
-  geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
-  geom_sf(data = fs_nf.proj, fill = NA, color = "black", linewidth = 1.25) +
+  geom_raster(aes(x = fcm.all.df$x, y = fcm.all.df$y, fill = as.factor(fcm.all.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black", linewidth = 1) +
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+  labs(title = "All Attributes: k=3, m=1.5", 
        fill = "Archetypes") +
   theme_bw() + 
   theme(legend.position = "bottom",
@@ -141,17 +121,16 @@ fcm_nf_map <- ggplot() +
         axis.title.y = element_blank())
 
 fcm_nf_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_all_nf_map_", Sys.Date(), ".png"), plot = fcm_nf_map, width = 12, height = 12, dpi = 300)  
 
 ## Create a map of the clusters with the Region and National Forest boundaries
-fcm.no.gs.df <- fcm_no_gs_result$Groups %>% as.data.frame(xy = TRUE)
 
-fcm_reg_nf_map <- ggplot() +
-  geom_raster(aes(x = fcm.no.gs.df$x, y = fcm.no.gs.df$y, fill = as.factor(fcm.no.gs.df$Groups))) +
+all_rg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.all.df$x, y = fcm.all.df$y, fill = as.factor(fcm.all.df$Groups))) +
   geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
   scale_fill_brewer(palette = "Set2") +
-  labs(title = "FCM SES Attributes: k=5, m=1.875", 
+  labs(title = "All Attributes: k=3, m=1.5", 
        fill = "Archetypes") +
   theme_bw() + 
   theme(text = element_text(size = 20),
@@ -160,8 +139,89 @@ fcm_reg_nf_map <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 
-fcm_reg_nf_map
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/fcm_no_gs_reg_nf_map_", Sys.Date(), ".png"), plot = fcm_reg_nf_map, width = 12, height = 12, dpi = 300)  
+all_rg_nf_map
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_all_reg_nf_map_", Sys.Date(), ".png"), plot = all_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
+# PMRC attributes
+fcm.pmrc.df <- fcm_pmrc_result$Groups %>% as.data.frame(xy = TRUE)
+
+pmrc_rg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.pmrc.df$x, y = fcm.pmrc.df$y, fill = as.factor(fcm.pmrc.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "PMRC Attributes: k=8, m=1.625", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+pmrc_rg_nf_map
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_pmrc_reg_nf_map_", Sys.Date(), ".png"), plot = pmrc_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
+# PMRC Poli
+fcm.pmrc.poli.df <- fcm_pmrc_poli_result$Groups %>% as.data.frame(xy = TRUE)
+
+pmrc_poli_rg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.pmrc.poli.df$x, y = fcm.pmrc.poli.df$y, fill = as.factor(fcm.pmrc.poli.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "PMRC with AIP: k=8, m=1.625", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+pmrc_poli_rg_nf_map
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_pmrc_poli_reg_nf_map_", Sys.Date(), ".png"), plot = pmrc_poli_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
+# No GS Poli 01
+fcm.poli.nogs.01.df <- fcm_poli_nogs_result_01$Groups %>% as.data.frame(xy = TRUE)
+
+poli_nogs_01_rg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.poli.nogs.01.df$x, y = fcm.poli.nogs.01.df$y, fill = as.factor(fcm.poli.nogs.01.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "No GS with AIP v1: k=3, m=1.625", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+poli_nogs_01_rg_nf_map
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_poli_nogs_v01_reg_nf_map_", Sys.Date(), ".png"), plot = poli_nogs_01_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
+# No GS Poli 02
+fcm.poli.nogs.02.df <- fcm_poli_nogs_result_02$Groups %>% as.data.frame(xy = TRUE)
+
+poli_nogs_02_rg_nf_map <- ggplot() +
+  geom_raster(aes(x = fcm.poli.nogs.02.df$x, y = fcm.poli.nogs.02.df$y, fill = as.factor(fcm.poli.nogs.02.df$Groups))) +
+  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  scale_fill_brewer(palette = "Set2") +
+  labs(title = "No GS with AIP v2: k=5, m=1.5", 
+       fill = "Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "bottom",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+poli_nogs_02_rg_nf_map
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_poli_nogs_v02_reg_nf_map_", Sys.Date(), ".png"), plot = poli_nogs_02_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
 
 # Maps for Idaho, California, Minnesota, Alabama
 id_fcm_result <- crop(fcm_no_gs_result, id_proj, mask = TRUE)
