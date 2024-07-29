@@ -70,8 +70,56 @@ spiderPlots(df_pmrc_poli, fcm_pmrc_poli$Belongings)
 violinPlots(df_all_sc, fcm_all$Groups)
 
 violinPlots(df_pmrc_sc, fcm_pmrc$Groups)
+pmrc_vplots_zsc <- violinPlots(scale(df_pmrc), fcm_pmrc$Groups)
+pmrc_vplots_rs <- (pmrc_vplots_zsc[[17]] | pmrc_vplots_zsc[[8]] | pmrc_vplots_zsc[[11]]) /
+  (pmrc_vplots_zsc[[13]] | pmrc_vplots_zsc[[14]] | pmrc_vplots_zsc[[15]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_vplots_rs_", Sys.Date(), ".png"), 
+       plot = pmrc_vplots_rs, 
+       width = 18, height = 12, dpi = 300)  
+
+pmrc_vplots_gs <- (pmrc_vplots_zsc[[9]] | pmrc_vplots_zsc[[10]] | pmrc_vplots_zsc[[19]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_vplots_gs_", Sys.Date(), ".png"), 
+       plot = pmrc_vplots_gs, 
+       width = 18, height = 9, dpi = 300)
+
+pmrc_vplots_ru_u <- (pmrc_vplots_zsc[[18]] | pmrc_vplots_zsc[[1]]) /
+  (pmrc_vplots_zsc[[12]] | pmrc_vplots_zsc[[20]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_vplots_ru_u_", Sys.Date(), ".png"), 
+       plot = pmrc_vplots_ru_u, 
+       width = 12, height = 12, dpi = 300)
+
+pmrc_vplots_u <- (pmrc_vplots_zsc[[4]] | pmrc_vplots_zsc[[16]] | pmrc_vplots_zsc[[2]]) /
+  (pmrc_vplots_zsc[[5]] | pmrc_vplots_zsc[[6]] | pmrc_vplots_zsc[[7]] | pmrc_vplots_zsc[[3]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_vplots_u_", Sys.Date(), ".png"), 
+       plot = pmrc_vplots_u, 
+       width = 18, height = 12, dpi = 300)
 
 violinPlots(df_pmrc_poli_sc, fcm_pmrc_poli$Groups)
+violinPlots(scale(df_pmrc_poli), fcm_pmrc_poli$Groups)
+pmrc_poli_vplots_zsc <- violinPlots(scale(df_pmrc_poli), fcm_pmrc_poli$Groups)
+
+pmrc_poli_vplots_rs <- (pmrc_poli_vplots_zsc[[18]] | pmrc_poli_vplots_zsc[[8]] | pmrc_poli_vplots_zsc[[12]]) /
+  (pmrc_poli_vplots_zsc[[14]] | pmrc_poli_vplots_zsc[[15]] | pmrc_poli_vplots_zsc[[16]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_poli_vplots_rs_", Sys.Date(), ".png"), 
+       plot = pmrc_poli_vplots_rs, 
+       width = 18, height = 12, dpi = 300)  
+
+pmrc_poli_vplots_gs <- (pmrc_poli_vplots_zsc[[10]] | pmrc_poli_vplots_zsc[[11]] | pmrc_poli_vplots_zsc[[20]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_poli_vplots_gs_", Sys.Date(), ".png"), 
+       plot = pmrc_poli_vplots_gs, 
+       width = 18, height = 9, dpi = 300)  
+
+pmrc_poli_vplots_ru_u <- (pmrc_poli_vplots_zsc[[19]] | pmrc_poli_vplots_zsc[[1]]) /
+  (pmrc_poli_vplots_zsc[[13]] | pmrc_poli_vplots_zsc[[21]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_poli_vplots_ru_u_", Sys.Date(), ".png"), 
+       plot = pmrc_poli_vplots_ru_u, 
+       width = 12, height = 12, dpi = 300)  
+
+pmrc_poli_vplots_u <- (pmrc_poli_vplots_zsc[[4]] | pmrc_poli_vplots_zsc[[17]] | pmrc_poli_vplots_zsc[[2]] | pmrc_poli_vplots_zsc[[9]]) /
+  (pmrc_poli_vplots_zsc[[5]] | pmrc_poli_vplots_zsc[[6]] | pmrc_poli_vplots_zsc[[7]] | pmrc_poli_vplots_zsc[[3]])
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/pmrc_poli_vplots_u_", Sys.Date(), ".png"), 
+       plot = pmrc_poli_vplots_u, 
+       width = 18, height = 12, dpi = 300)  
 
 violinPlots(df_poli_nogs_sc, fcm_poli_nogs_1$Groups)
 
