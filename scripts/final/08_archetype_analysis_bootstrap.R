@@ -48,6 +48,20 @@ ggplot() +
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
 
+pmrc_boot <- readRDS(here::here("data/processed/pmrc_bootvalues.RDS"))
+
+df_pmrc_gp6 <- pmrc_boot$group_centers[["group6"]]
+
+melted_df <- reshape2::melt(df_pmrc_gp6)
+
+melted_df$variable <- as.factor(melted_df$variable)
+
+ggplot() +
+  geom_histogram(mapping = aes(x = value), data = melted_df, bins = 100) +
+  labs(title = "stability of group 6 centers", subtitle = "for 100 iterations") +
+  xlim(-3,3)+
+  facet_wrap(vars(variable), ncol=4)
+
 #---PMRC-Poli----
 pmrc_poli_bootvalues <- boot_group_validation(fcm_pmrc_poli, nsim = 100, maxiter = 100, 
                                          tol = 0.0001, verbose = FALSE)
@@ -63,6 +77,20 @@ ggplot() +
   labs(title = "pmrc with aip: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
+
+pmrc_poli_boot <- readRDS(here::here("data/processed/pmrc_poli_bootvalues.RDS"))
+
+df_pmrc_poli_gp8 <- pmrc_poli_boot$group_centers[["group8"]]
+
+melted_df <- reshape2::melt(df_pmrc_poli_gp8)
+
+melted_df$variable <- as.factor(melted_df$variable)
+
+ggplot() +
+  geom_histogram(mapping = aes(x = value), data = melted_df, bins = 100) +
+  labs(title = "stability of group 8 centers", subtitle = "for 100 iterations") +
+  xlim(-3,3)+
+  facet_wrap(vars(variable), ncol=4)
 
 #----Poli-no-GS-01----
 poli_nogs01_bootvalues <- boot_group_validation(fcm_poli_nogs_1, nsim = 100, maxiter = 100, 
@@ -93,3 +121,18 @@ ggplot() +
   labs(title = "no GS with aip v02: stability of clusters", subtitle = "for 100 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=2)
+
+poli_nogs2_boot <- readRDS(here::here("data/processed/poli_nogs02_bootvalues.RDS"))
+
+df_poli_nogs2_grp2 <- poli_nogs2_boot$group_centers[["group2"]]
+
+melted_df <- reshape2::melt(df_poli_nogs2_grp2)
+
+melted_df$variable <- as.factor(melted_df$variable)
+
+ggplot() +
+  geom_histogram(mapping = aes(x = value), data = melted_df, bins = 100) +
+  labs(title = "stability of group 2 centers", subtitle = "for 100 iterations") +
+  xlim(-3,3)+
+  facet_wrap(vars(variable), ncol=4)
+
