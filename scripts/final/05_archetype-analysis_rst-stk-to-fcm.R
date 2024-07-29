@@ -249,11 +249,13 @@ writeRaster(map.res.pmrc.poli[["Groups"]], filename = paste0("data/processed/FCM
 FCM_result_poli_nogs_01 <- CMeans(dataset_poli_nogs, k = 3, m = 1.625, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_poli_nogs_01, here::here(paste0("data/processed/FCM_poli_nogs_01_", Sys.Date(), ".rds")))
 map.res.poli.nogs.01 <- rast(FCM_result_poli_nogs_01$rasters)
+plot(map.res.poli.nogs.01[["Groups"]])
 writeRaster(map.res.poli.nogs.01[["Groups"]], filename = paste0("data/processed/FCM_poli_nogs_01_", Sys.Date(), ".tif"))
 
 FCM_result_poli_nogs_02 <- CMeans(dataset_poli_nogs, k = 5, m = 1.5, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_poli_nogs_02, here::here(paste0("data/processed/FCM_poli_nogs_02_", Sys.Date(), ".rds")))
 map.res.poli.nogs.02 <- rast(FCM_result_poli_nogs_02$rasters)
+plot(map.res.poli.nogs.02[["Groups"]])
 writeRaster(map.res.poli.nogs.02[["Groups"]], filename = paste0("data/processed/FCM_poli_nogs_02_", Sys.Date(), ".tif"))
 
 
