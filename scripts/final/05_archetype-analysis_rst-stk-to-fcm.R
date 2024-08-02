@@ -305,7 +305,7 @@ write_csv(aa_iteration, here::here("outputs/aa_iteration_2024-06-20.csv"), appen
 
 ##----Check the probability of belonging for each cluster----
 ### using different undecided thresholds
-maps1 <- mapClusters(object = FCM_result_pmrc_poli, undecided = 0.45)
+maps1 <- mapClusters(object = FCM_result_pmrc_poli, undecided = 0.25)
 
 # plotting membership values each cluster
 maps1$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set2")
@@ -347,3 +347,5 @@ ggplot(GFCMvalues) +
 GFCM_result <- GCMeans(dataset_pmrc_poli, k = 8, m = 1.625, beta = 0.125, standardize = FALSE,
                        verbose = FALSE, seed = 6891, tol = 0.001)
   
+maps2 <- mapClusters(object = GFCM_result, undecided = 0.25)
+maps2$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set2")
