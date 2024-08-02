@@ -258,7 +258,32 @@ map.res.poli.nogs.02 <- rast(FCM_result_poli_nogs_02$rasters)
 plot(map.res.poli.nogs.02[["Groups"]])
 writeRaster(map.res.poli.nogs.02[["Groups"]], filename = paste0("data/processed/FCM_poli_nogs_02_", Sys.Date(), ".tif"))
 
+##----Run a KNN (no fuzzifier) cluster analysis----
+set.seed(1986)
+km_pmrc_poli <- k_means(rst_fcm_pmrc_poli_sc, centers=8, iter.max = 100, algorithm = "Lloyd")
+plot(km_pmrc_poli)
 
+##----Test with noise cluster = TRUE----
+FCM_result_pmrc_poli_noise_del1 <- CMeans(dataset_pmrc_poli, k = 8, m = 1.625, 
+                                           standardize = FALSE, seed = 6891, 
+                                           noise_cluster = TRUE, delta = 1)
+saveRDS(FCM_result_pmrc_poli_noise_del1, here::here(paste0("data/processed/FCM_pmrc_poli_noise_del1", Sys.Date(), ".rds")))
+map.res.pmrc.poli.noise1 <- rast(FCM_result_pmrc_poli_noise_del1$rasters)
+plot(map.res.pmrc.poli.noise1[["Groups"]])
+
+FCM_result_pmrc_poli_noise_del5 <- CMeans(dataset_pmrc_poli, k = 8, m = 1.625, 
+                                          standardize = FALSE, seed = 6891, 
+                                          noise_cluster = TRUE, delta = 5)
+saveRDS(FCM_result_pmrc_poli_noise_del5, here::here(paste0("data/processed/FCM_pmrc_poli_noise_del5", Sys.Date(), ".rds")))
+map.res.pmrc.poli.noise5 <- rast(FCM_result_pmrc_poli_noise_del5$rasters)
+plot(map.res.pmrc.poli.noise5[["Groups"]])
+
+FCM_result_pmrc_poli_noise_del05 <- CMeans(dataset_pmrc_poli, k = 8, m = 1.625, 
+                                          standardize = FALSE, seed = 6891, 
+                                          noise_cluster = TRUE, delta = 0.5)
+saveRDS(FCM_result_pmrc_poli_noise_del05, here::here(paste0("data/processed/FCM_pmrc_poli_noise_del05", Sys.Date(), ".rds")))
+map.res.pmrc.poli.noise05 <- rast(FCM_result_pmrc_poli_noise_del05$rasters)
+plot(map.res.pmrc.poli.noise05[["Groups"]])
 
 ##---save the iteration, k, m as a dataframe----
 aa_iteration <- data.frame(iteration_name = character(),
@@ -276,3 +301,48 @@ sil_idx <- 0.58
 aa_iteration[nrow(aa_iteration) + 1,] <- list(iteration_name, attris, k, m, sil_idx)
 
 write_csv(aa_iteration, here::here("outputs/aa_iteration_2024-06-20.csv"), append = TRUE)
+
+
+##----Check the probability of belonging for each cluster----
+### using different undecided thresholds
+maps1 <- mapClusters(object = FCM_result_pmrc_poli, undecided = 0.45)
+
+# plotting membership values each cluster
+maps1$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set2")
+
+maps1$ProbaMaps[[1]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[2]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[3]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[4]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[5]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[6]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[7]] + theme(legend.position = "bottom")
+
+maps1$ProbaMaps[[8]] + theme(legend.position = "bottom")
+
+GFCMvalues <- select_parameters.mc(algo = "GFCM", data = dataset_pmrc_poli,
+                                   k = 8, m = seq(1.1,2,0.1), beta = seq(0.1,0.9,0.1),
+                                   spconsist = FALSE, verbose = TRUE, init = "kpp",
+                                   indices = c("XieBeni.index", "Explained.inertia",
+                                               "Negentropy.index", "Silhouette.index"))
+
+ggplot(GFCMvalues) + 
+  geom_raster(aes(x = m, y = beta, fill = Silhouette.index)) + 
+  geom_text(aes(x = m, y = beta, label = round(Silhouette.index,2)), size = 2)+
+  scale_fill_viridis() +
+  coord_fixed(ratio=1)
+
+ggplot(GFCMvalues) + 
+  geom_raster(aes(x = m, y = beta, fill = Explained.inertia)) + 
+  geom_text(aes(x = m, y = beta, label = round(Explained.inertia,2)), size = 2)+
+  scale_fill_viridis() +
+  coord_fixed(ratio=1)
+
+GFCM_result <- GCMeans(dataset_pmrc_poli, k = 8, m = 1.625, beta = 0.125, standardize = FALSE,
+                       verbose = FALSE, seed = 6891, tol = 0.001)
