@@ -1,5 +1,6 @@
 library(tidyverse)
 library(terra)
+library(raster)
 library(sf)
 library(ggplot2)
 library(patchwork)
@@ -46,6 +47,8 @@ df_pmrc_poli_sc <- as.data.frame((fcm_pmrc_poli_attri - global(fcm_pmrc_poli_att
                                  na.rm = TRUE)
 df_poli_nogs_sc <- as.data.frame((fcm_poli_nogs_attri - global(fcm_poli_nogs_attri, "min", na.rm=TRUE)[,1])/(global(fcm_poli_nogs_attri, "max", na.rm=TRUE)[,1] - global(fcm_poli_nogs_attri, "min", na.rm=TRUE)[,1]),
                                  na.rm = TRUE)
+
+
 
 ## Which variables were most different from the mean?
 df_all_groups <- cbind(df_all, fcm_all$Groups)
@@ -106,15 +109,15 @@ mean_diff <- function(attribute_data, groups){
   return(list(df_group_means, df_group_sds, df_mean_diff, df_mean_diff_1sd))
 }
 
-all_means <- as.data.frame(mean_diff(df_all_sc, fcm_all$Groups)[1])
+all_means <- as.data.frame(mean_diff(df_all, fcm_all$Groups)[1])
 pmrc_means <- as.data.frame(mean_diff(df_pmrc_sc, fcm_pmrc$Groups)[1])
-pmrc_poli_means <- as.data.frame(mean_diff(df_pmrc_poli_sc, fcm_pmrc_poli$Groups)[1])
+pmrc_poli_means <- as.data.frame(mean_diff(df_pmrc_poli, fcm_pmrc_poli$Groups)[1])
 poli_nogs1_means <- as.data.frame(mean_diff(df_poli_nogs_sc, fcm_poli_nogs_1$Groups)[1])
 poli_nogs2_means <- as.data.frame(mean_diff(df_poli_nogs_sc, fcm_poli_nogs_2$Groups)[1])
 
 all_sd <- as.data.frame(mean_diff(df_all_sc, fcm_all$Groups)[2])
 pmrc_sd <- as.data.frame(mean_diff(df_pmrc_sc, fcm_pmrc$Groups)[2])
-pmrc_poli_sd <- as.data.frame(mean_diff(df_pmrc_poli_sc, fcm_pmrc_poli$Groups)[2])
+pmrc_poli_sd <- as.data.frame(mean_diff(df_pmrc_poli, fcm_pmrc_poli$Groups)[2])
 poli_nogs1_sd <- as.data.frame(mean_diff(df_poli_nogs_sc, fcm_poli_nogs_1$Groups)[2])
 poli_nogs2_sd <- as.data.frame(mean_diff(df_poli_nogs_sc, fcm_poli_nogs_2$Groups)[2])
 
