@@ -346,3 +346,4 @@ ggplot(GFCMvalues) +
 
 GFCM_result <- GCMeans(dataset_pmrc_poli, k = 8, m = 1.625, beta = 0.125, standardize = FALSE,
                        verbose = FALSE, seed = 6891, tol = 0.001)
+  
