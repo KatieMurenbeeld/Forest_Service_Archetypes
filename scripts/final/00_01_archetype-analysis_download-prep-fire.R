@@ -29,11 +29,11 @@ download_fire <- function(st){
 # Create state list, excluding Alaska, DC, HI, and territories
 states <- st_drop_geometry(states())
 st_list <- states %>%
-  select(GEOID, NAME) %>%
+  dplyr::select(GEOID, NAME) %>%
   mutate(NAME = gsub(" ", "", NAME)) %>%
   mutate(GEOID = as.numeric(GEOID)) %>%
   filter(GEOID != 2 & GEOID != 11 & GEOID != 15 & GEOID < 60) %>%
-  select(NAME)
+  dplyr::select(NAME)
 
 # may need to complete in chunks by indexing st_list
 for (state in st_list[31:48,]) {
@@ -64,7 +64,7 @@ merge_all_rst <- function(res){
   rst.sprc <- sprc(rasters)
   m <- merge(rst.sprc)
   names(m) <- prefix
-  fnames.merge <- paste0(prefix, "_merge", res, ".tif")
+  fnames.merge <- paste0(prefix, Sys.Date(), "_merge", res, ".tif")
   writeRaster(m, filename = paste0("data/processed/merged/", fnames.merge), overwrite=TRUE)
   return( paste0("data/processed/merged/", fnames.merge))
 }
