@@ -15,6 +15,7 @@ library(tigris)
 # Load the data
 fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
 fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
+aip <- st_read("data/processed/aip_vars_2024-08-02.shp")
 #conus_attri_all <- rast("data/processed/rast_fcm_2024-05-29.tif") # raster stack given to FCM model
 #map.conus <- rast("data/processed/FCM_2024-05-29.tif") # FCM results raster
 fcm_all_attri <- rast("data/processed/rast_fcm_all_2024-07-22.tif")
@@ -128,13 +129,15 @@ violinPlots(df_poli_nogs_sc, fcm_poli_nogs_2$Groups)
 ## Reproject the forest service shapes to NAD83
 projection <- "epsg: 5070"
 
+aip.proj <- aip %>% st_transform(., crs = projection)
+
 fs_nf.proj <- fs_nf %>% 
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
 fs_reg.proj <- fs_reg %>% 
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
-fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_all_attri))
+fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_pmrc_poli_attri))
 
 # crop no_gs attributes to Idaho, California, Minnesota, and Alabama
 states <- states(cb = TRUE)
@@ -153,6 +156,15 @@ mn_proj <- states_proj %>%
 ## Check and rename the attributes in each raster stack
 names(fcm_all_attri)
 
+aip_county <- ggplot() + 
+  geom_sf(data = aip.proj, aes(fill = mrp_dlg)) +
+  scale_fill_gradient2(midpoint = 0.0)
+ggsave(here::here("figures/aip_county.png"), aip_county)
+
+aip_se_county <- ggplot() + 
+  geom_sf(data = aip.proj, aes(fill = mrp_dl_)) + 
+  scale_fill_gradient(low = "white", high = "red4")
+ggsave(here::here("figures/aip_se_county.png"), aip_se_county)
 
 ## Create a map of the clusters with the National Forest boundaries
 fcm.all.df <- fcm_all_result$Groups %>% as.data.frame(xy = TRUE)
@@ -229,6 +241,11 @@ pmrc_poli_rg_nf_map <- ggplot() +
 
 pmrc_poli_rg_nf_map
 ggsave(paste0("~/Analysis/Archetype_Analysis/figures/fcm_pmrc_poli_reg_nf_map_", Sys.Date(), ".png"), plot = pmrc_poli_rg_nf_map, width = 12, height = 12, dpi = 300)  
+
+## Check the probability of belonging for each cluster
+### using different undecided thresholds
+maps1 <- mapClusters(object = fcm_pmrc_poli, undecided = 0.45)
+
 
 # No GS Poli 01
 fcm.poli.nogs.01.df <- fcm_poli_nogs_result_01$Groups %>% as.data.frame(xy = TRUE)
