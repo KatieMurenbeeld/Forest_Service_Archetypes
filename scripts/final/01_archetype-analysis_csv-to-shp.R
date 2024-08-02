@@ -29,7 +29,7 @@ us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
 continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
 
-counties <- tigris::counties()
+counties <- tigris::counties(year = 2020) # need to set the year to account for changes to FIPS codes
 counties <- counties %>%
   filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, geometry)
@@ -110,7 +110,7 @@ elect <- elect_cntx %>% #need to ignore NAs when calculating things
 ## American Ideology Data
 aip_mrp <- aip %>%
   filter(survey_period == "2017-2021") %>%
-  dplyr::select(county_fips, mrp_ideology, demshare_pres) %>%
+  dplyr::select(county_fips, mrp_ideology, mrp_ideology_se, demshare_pres) %>%
   rename("FIPS" = "county_fips")
 
 ## Make sure all FIPS codes are padded with 0s for a total of 5 characters
@@ -141,9 +141,15 @@ var_bdry <- left_join(all_vars, counties,
 
 var_bdry <- st_as_sf(var_bdry)
 
+# Join the AIP data only
+aip_bdry <- left_join(aip_mrp_fips, counties, 
+                      by = c("FIPS" = "GEOID"))
+
+aip_bdry <- st_as_sf(aip_bdry)
+
 ## Check and fix validity
 all(st_is_valid(var_bdry))
-
+all(st_is_valid(aip_bdry))
 ## Check for empty geometries and invalid or corrupt geometries 
 any(st_is_empty(var_bdry))
 var_bdry_noempty <- var_bdry[!st_is_empty(var_bdry),]
@@ -155,3 +161,5 @@ st_is_longlat(var_bdry_noempty)
 ## Save the validated shapefile
 write_sf(obj = var_bdry, dsn = paste0(here::here("data/processed/"), "all_vars_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
+
+write_sf(obj = aip_bdry, dsn = paste0(here::here("data/processed/"), "aip_vars_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
