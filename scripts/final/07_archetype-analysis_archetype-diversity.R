@@ -12,6 +12,10 @@ fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
 fcm_no_gs_attri <- rast("data/processed/rast_fcm_no_gs_2024-06-20.tif")
 fcm_no_gs_result <- rast("data/processed/FCM_no_gs_2024-06-20.tif")
 
+fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-07-22.tif")
+fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-07-22.tif")
+fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-07-22.rds")
+
 ## Reproject the forest service shapes and crop
 projection <- "epsg: 5070"
 
@@ -19,13 +23,13 @@ fs_nf.proj <- fs_nf %>%
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
 
-fs_nf.crop <- st_crop(fs_nf.proj, ext(fcm_no_gs_attri))
+fs_nf.crop <- st_crop(fs_nf.proj, ext(fcm_pmrc_poli_attri))
 
 fs_reg.proj <- fs_reg %>% 
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
 
-fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_no_gs_attri))
+fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_pmrc_poli_attri))
 
 # Union all of the national forests
 nf_union <- st_union(fs_nf.crop)
@@ -57,7 +61,7 @@ buffers <- nf_buffers(fs_nf.crop, nf_union_dif)
 ## using the proportions, calculate Shannon Diversity Index (-sum(species_proportions * log(species_proportions)))
 
 v <- buffers %>% st_cast("MULTIPOLYGON")
-z <- crop(fcm_no_gs_result, v, mask = TRUE)
+z <- crop(fcm_pmrc_poli_result, v, mask = TRUE)
 
 x <- exact_extract(z, v, coverage_area = TRUE)
 names(x) <- v$FORESTORGC
@@ -72,7 +76,7 @@ areas <- areas %>%
   replace_na(list(value = 0))
 
 shan_h <- areas %>%
-  select(FORESTORGC, proportion) %>%
+  dplyr::select(FORESTORGC, proportion) %>%
   group_by(FORESTORGC) %>%
   summarise(shan_div = -sum(proportion * log(proportion)))
 
@@ -134,7 +138,7 @@ shan_conus_states <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_states
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_states_", Sys.Date(), ".png"), plot = shan_conus_states, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_states_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_states, width = 12, height = 12, dpi = 300)  
 
 
 shan_conus_reg <- ggplot() +
@@ -152,7 +156,25 @@ shan_conus_reg <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_reg
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_reg_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
 
+shan_conus_reg_state <- ggplot() +
+  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  geom_sf(data = states, fill = NA, color = "black") +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
+  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
+  #scale_fill_brewer(palette = "Set2") +
+  labs(title = "Shannon Entropy (H) of Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+shan_conus_reg_state
+ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_reg_state_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
 
 #----What does this mean for NEPA assessment times?----
 
