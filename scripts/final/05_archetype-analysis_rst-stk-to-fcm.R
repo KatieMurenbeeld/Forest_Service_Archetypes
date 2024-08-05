@@ -72,6 +72,8 @@ rst_fcm_pmrc_sc <- (rst_fcm_pmrc - global(rst_fcm_pmrc, "min", na.rm=TRUE)[,1])/
 rst_fcm_pmrc_poli_sc <- (rst_fcm_pmrc_poli - global(rst_fcm_pmrc_poli, "min", na.rm=TRUE)[,1])/(global(rst_fcm_pmrc_poli, "max", na.rm=TRUE)[,1] - global(rst_fcm_pmrc_poli, "min", na.rm=TRUE)[,1])
 rst_fcm_poli_nogs_sc <- (rst_fcm_poli_nogs - global(rst_fcm_poli_nogs, "min", na.rm=TRUE)[,1])/(global(rst_fcm_poli_nogs, "max", na.rm=TRUE)[,1] - global(rst_fcm_poli_nogs, "min", na.rm=TRUE)[,1])
 
+writeRaster(rst_fcm_pmrc_poli_sc, here::here("data/processed/rst_fcm_pmrc_poli_sc.tif"))
+
 # Investigate the correlation between the attributes
 correlation_all <- layerCor(rst_fcm_all, "pearson", na.rm = TRUE)
 fcm_cor_all <- as.data.frame(correlation_all$correlation)
@@ -107,6 +109,7 @@ dataset_pmrc_poli <- lapply(names(rst_fcm_pmrc_poli_sc), function(n){
   return(aband)
 })
 names(dataset_pmrc_poli) <- names(rst_fcm_pmrc_poli_sc)
+saveRDS(dataset_pmrc_poli, here::here("data/processed/dataset_pmrc_poli.RDS"))
 
 dataset_poli_nogs <- lapply(names(rst_fcm_poli_nogs_sc), function(n){
   aband <- rst_fcm_poli_nogs_sc[[n]]
@@ -347,5 +350,9 @@ ggplot(GFCMvalues) +
 GFCM_result <- GCMeans(dataset_pmrc_poli, k = 8, m = 1.625, beta = 0.125, standardize = FALSE,
                        verbose = FALSE, seed = 6891, tol = 0.001)
   
-maps2 <- mapClusters(object = GFCM_result, undecided = 0.25)
-maps2$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set2")
+maps2 <- mapClusters(object = GFCM_result, undecided = 0.3)
+maps2$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set3")
+
+
+test_dataset <- readRDS(here::here("data/processed/dataset_pmrc_poli.RDS"))
+
