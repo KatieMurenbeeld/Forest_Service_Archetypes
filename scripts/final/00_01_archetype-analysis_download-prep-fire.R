@@ -40,12 +40,12 @@ for (state in st_list[31:48,]) {
   download_fire(state)
 }
 
-fnames_list <- list.files(here::here("data/original/"), pattern = "WHP", full.names = TRUE)
+fnames_list <- list.files(here::here("data/original/fire"), pattern = "WHP", full.names = TRUE)
 
 # For next time update this function to aggregate at 3km-3000m (fact = 100) and 1.5km-1500m (fact = 50)
 agg_fire <- function(ogrst, fac, res){
   rasters <- rast(ogrst)
-  fnames.process <- paste0("data/processed/aggregated/",names(rasters), "_", res, ".tif")
+  fnames.process <- paste0("data/processed/aggregated/",names(rasters), "_", res, "_", Sys.Date(), ".tif")
   rasters.agg <- aggregate(rasters, fact=fac, cores = 2)
   writeRaster(rasters.agg, fnames.process, overwrite=TRUE)
   return(fnames.process) 
@@ -72,3 +72,32 @@ merge_all_rst <- function(res){
 for (r in res) {
   merge_all_rst(r)
 }
+
+
+#===================
+# merge then aggregate - files are too large
+
+merge_all_rst <- function(prefix){
+  fnames_list <- list.files(here::here("data/original/fire"), pattern = "WHP", full.names = TRUE)
+  rasters <- lapply(fnames_list, function(x) rast(x))
+  rst.sprc <- sprc(rasters)
+  m <- merge(rst.sprc)
+  names(m) <- prefix
+  fnames.merge <- paste0(prefix, Sys.Date(), "_merged.tif")
+  writeRaster(m, filename = paste0("data/processed/merged/", fnames.merge), overwrite=TRUE)
+  return( paste0("data/processed/merged/", fnames.merge))
+}
+
+merge_all_rst(prefix)
+
+conus_whp_3km_agg <- aggregate(rast(here::here("data/process/merged/WHP2024-0808_merged.tif")),
+                               fact = 100,
+                               cores = 2)
+
+writeRaster(conus_whp_3km_agg, )
+
+## breadcrumb create a mosaic
+
+rlist <- list()
+
+
