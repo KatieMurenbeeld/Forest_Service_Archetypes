@@ -44,7 +44,7 @@ GFCM_result <- GCMeans(dataset_pmrc_poli, k = 8, m = 1.625, beta = 0.125, standa
 
 ##----Check the probability of belonging for each cluster----
 ### using different undecided thresholds
-maps2 <- mapClusters(object = GFCM_result, undecided = 0.45)
+maps2 <- mapClusters(object = GFCM_result, undecided = 0)
 maps2$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set3")
 
 maps2$ProbaMaps[[1]] + theme(legend.position = "bottom")
