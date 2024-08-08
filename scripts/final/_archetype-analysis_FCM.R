@@ -27,7 +27,7 @@ writeRaster(map.res.pmrc.poli[["Groups"]], filename = paste0("data/processed/FCM
 
 ##----Check the probability of belonging for each cluster----
 ### using different undecided thresholds
-maps1 <- mapClusters(object = FCM_result_pmrc_poli, undecided = 0.25)
+maps1 <- mapClusters(object = FCM_result_pmrc_poli, undecided = 0.45)
 maps1$ClusterPlot + theme(legend.position = "bottom") + scale_fill_brewer(palette = "Set3")
 
 maps1$ProbaMaps[[1]] + theme(legend.position = "bottom")
