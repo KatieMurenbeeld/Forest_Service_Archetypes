@@ -73,9 +73,11 @@ for (r in res) {
   merge_all_rst(r)
 }
 
+merge_all_rst("3000m")
+plot(rast(here::here("data/processed/merged/WHP2024-08-09_merge3000m.tif")))
 
 #===================
-# merge then aggregate - files are too large
+# merge then aggregate in order to avoid gaps between the states
 
 merge_all_rst <- function(prefix){
   fnames_list <- list.files(here::here("data/original/fire"), pattern = "WHP", full.names = TRUE)
@@ -83,21 +85,23 @@ merge_all_rst <- function(prefix){
   rst.sprc <- sprc(rasters)
   m <- merge(rst.sprc)
   names(m) <- prefix
-  fnames.merge <- paste0(prefix, Sys.Date(), "_merged.tif")
+  fnames.merge <- paste0(prefix, "_", Sys.Date(), "_merged.tif")
   writeRaster(m, filename = paste0("data/processed/merged/", fnames.merge), overwrite=TRUE)
-  return( paste0("data/processed/merged/", fnames.merge))
+  return(paste0("data/processed/merged/", fnames.merge))
 }
 
 merge_all_rst(prefix)
 
-conus_whp_3km_agg <- aggregate(rast(here::here("data/process/merged/WHP2024-0808_merged.tif")),
+# check the plot
+plot(rast(here::here("data/processed/merged/WHP_2024-08-09_merged.tif")))
+# read in the new raster
+whp_merged <- rast(here::here("data/processed/merged/WHP_2024-08-09_merged.tif"))
+# aggregate to 3km
+conus_whp_3km_agg <- aggregate(whp_merged,
                                fact = 100,
                                cores = 2)
-
-writeRaster(conus_whp_3km_agg, )
-
-## breadcrumb create a mosaic
-
-rlist <- list()
-
+# Check the plot
+plot(conus_whp_3km_agg)
+# save the new merged and aggregated WHP raster
+writeRaster(conus_whp_3km_agg, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_", Sys.Date(), ".tif"))
 
