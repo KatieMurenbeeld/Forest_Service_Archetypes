@@ -17,7 +17,7 @@ library(tigris)
 projection <- "epsg:5070"
 
 #---Load the data-----
-whp_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+whp_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 arch_attri <- rast(here::here("data/processed/arch_attri_2024-07-19.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
