@@ -74,7 +74,7 @@ all(st_is_empty(conus_fedp_val))
 # Then calculate the area of padus polygons overlapping the grid cells
 # Then rasterize and replace NAs with 0 
 
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 ref_rast_proj <- project(ref_rast, projection)
 counties_proj <- counties %>% st_transform(., crs = projection)
 
