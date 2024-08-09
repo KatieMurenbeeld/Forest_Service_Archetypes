@@ -31,7 +31,7 @@ cejst <- st_read(here::here("data/original/usa.shp"))
 fia_prod <- st_read(here::here("data/processed/conus_prod_fill_fia.shp"))
 
 #---Load reference raster----
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 ref_rast_proj <- project(ref_rast, projection)
 
 #---Transform the projection of shapefiles----
