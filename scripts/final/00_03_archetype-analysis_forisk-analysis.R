@@ -116,7 +116,7 @@ zmc5sf2 <- interpolate(preds.rast, mc5sf2, debug.level=0, fun=interpolate_gstat,
 # 3. Rasterize the data using the raster created in the 00_archetype-analysis_download-prep-fire.R
 # Resample and crop the mill capacity change predictions to the reference raster.
 # created in the 00_archetype-analysis_download-prep-fire.R
-ref_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif")) 
+ref_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif")) 
 
 zmc5sf05_proj <- project(zmc5sf05, ref_rast)
 zmc5sf05_resamp <- resample(zmc5sf05_proj, ref_rast, "bilinear")
