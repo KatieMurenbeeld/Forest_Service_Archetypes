@@ -100,8 +100,13 @@ whp_merged <- rast(here::here("data/processed/merged/WHP_2024-08-09_merged.tif")
 conus_whp_3km_agg <- aggregate(whp_merged,
                                fact = 100,
                                cores = 2)
+
+conus_whp_1.5km_agg <- aggregate(whp_merged,
+                               fact = 50,
+                               cores = 2)
 # Check the plot
 plot(conus_whp_3km_agg)
 # save the new merged and aggregated WHP raster
 writeRaster(conus_whp_3km_agg, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_", Sys.Date(), ".tif"))
+writeRaster(conus_whp_1.5km_agg, paste0(here::here("data/processed/merged/"), "conus_whp_15km_agg_", Sys.Date(), ".tif"))
 
