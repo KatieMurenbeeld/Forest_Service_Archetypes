@@ -17,7 +17,7 @@ elect_cntx <- read_csv(paste0(here::here("data/original/election_context_2018.cs
 aip <- read_dta(here::here("data/original/aip_files/aip_counties_ideology_v2022a.dta"))
 
 ## Load county boundaries from tigris
-counties <- tigris::counties()
+counties <- tigris::counties(year = 2020)
 ##Get Continental US list
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
