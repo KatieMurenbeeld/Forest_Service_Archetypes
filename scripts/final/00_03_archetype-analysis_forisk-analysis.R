@@ -34,7 +34,7 @@ us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
 continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
 
-counties <- tigris::counties(state = continental.states$state, cb = TRUE)
+counties <- tigris::counties(state = continental.states$state, cb = TRUE, year = 2022)
 
 conus_mills <- mill_sf %>%
   filter(Region != "Canada West") %>%
