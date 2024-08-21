@@ -36,7 +36,7 @@ options(timeout=6000)
 
 # 1. Load the county boundaries and FIA data
 ## Load county boundaries from tigris
-counties <- tigris::counties()
+counties <- tigris::counties(year = 2020)
 ##Get Continental US list
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
@@ -48,7 +48,6 @@ us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
 continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
 
-counties <- tigris::counties()
 counties <- counties %>%
   filter(STATEFP %in% us.states$FIPS) %>%
   dplyr::select(GEOID, COUNTYFP, STATEFP, geometry)
@@ -73,6 +72,9 @@ conus_prod <- dplyr::select(fia$COND, STATECD, COUNTYCD, SITECLCD)
 ## easily join to counties and to better group and summarise
 conus_prod <- conus_prod %>%
   mutate(GEOID = paste0(str_pad(as.character(STATECD), 2, pad = "0"), str_pad(COUNTYCD, 3, pad = "0")))
+
+# Need to replace GEOID 46113 with 46102
+conus_prod$GEOID <- str_replace_all(conus_prod$GEOID, "46113", "46102")
 
 # 3. Update the productivity code and replace -999 with NA in STDAGE
 # put the SITECD (productivity code) into a real number code 1 = 225 cuf/ac/yr, 
@@ -122,10 +124,6 @@ conus_prod_fill_sf <- conus_prod_fill_sf %>%
                                  mean_prod_fill))
 
 
-ggplot(data = conus_prod_fill_sf) +
-  geom_sf(aes(fill = mean_prod_fill)) +
-  theme_bw()
-
 any(st_is_empty(conus_prod_fill_sf))
 
 conus_age_prod_sf_noempty <- conus_prod_fill_sf[!st_is_empty(conus_prod_fill_sf),]
@@ -139,7 +137,7 @@ ggplot() +
   geom_sf(data = conus_age_prod_sf_noempty, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
 
 # 7. Save the validated shapefile
-write_sf(obj = conus_age_prod_sf_noempty, dsn = here::here("data/processed/conus_prod_fill_fia.shp"), overwrite = TRUE, append = FALSE)
+write_sf(obj = conus_age_prod_sf_noempty, dsn = paste0(here::here("data/processed/"), "conus_prod_fill_fia_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
 
