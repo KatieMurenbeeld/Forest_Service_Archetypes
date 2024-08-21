@@ -80,7 +80,7 @@ r_prec_seas_conus <- bio_conus$bio15
 # 3. Resample to 1.5km and 3km resolution
 ## Using the WHP raster as a reference
 ref_rast1.5 <- rast(here::here("data/processed/merged/WHP_merge1500m.tif"))
-ref_rast3 <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+ref_rast3 <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 
 resamp <- function(raster, ref_raster, method){
   rast_proj <- project(raster, crs(ref_raster))
