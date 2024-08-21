@@ -11,7 +11,7 @@ library(raster)
 #---Process raster for use with geocmeans----
 
 # load the raster stack created in 03_archetype-analysis_rst-to-fcmstck.R
-rast_stack <- rast(here::here("data/processed/rast_stack_full_2024-07-22.tif"))
+rast_stack <- rast(here::here("data/processed/rast_stack_full_2024-08-12.tif"))
 
 # Check the layers and update the names (optional) 
 names(rast_stack)
@@ -72,7 +72,7 @@ rst_fcm_pmrc_sc <- (rst_fcm_pmrc - global(rst_fcm_pmrc, "min", na.rm=TRUE)[,1])/
 rst_fcm_pmrc_poli_sc <- (rst_fcm_pmrc_poli - global(rst_fcm_pmrc_poli, "min", na.rm=TRUE)[,1])/(global(rst_fcm_pmrc_poli, "max", na.rm=TRUE)[,1] - global(rst_fcm_pmrc_poli, "min", na.rm=TRUE)[,1])
 rst_fcm_poli_nogs_sc <- (rst_fcm_poli_nogs - global(rst_fcm_poli_nogs, "min", na.rm=TRUE)[,1])/(global(rst_fcm_poli_nogs, "max", na.rm=TRUE)[,1] - global(rst_fcm_poli_nogs, "min", na.rm=TRUE)[,1])
 
-writeRaster(rst_fcm_pmrc_poli_sc, here::here("data/processed/rst_fcm_pmrc_poli_sc.tif"))
+writeRaster(rst_fcm_pmrc_poli_sc, paste0(here::here("data/processed/"), "rst_fcm_pmrc_poli_sc_", Sys.Date(), ".tif"), overwrite = TRUE)
 
 # Investigate the correlation between the attributes
 correlation_all <- layerCor(rst_fcm_all, "pearson", na.rm = TRUE)
@@ -109,7 +109,7 @@ dataset_pmrc_poli <- lapply(names(rst_fcm_pmrc_poli_sc), function(n){
   return(aband)
 })
 names(dataset_pmrc_poli) <- names(rst_fcm_pmrc_poli_sc)
-saveRDS(dataset_pmrc_poli, here::here("data/processed/dataset_pmrc_poli.RDS"))
+saveRDS(dataset_pmrc_poli, paste0(here::here("data/processed/"), "dataset_pmrc_poli_", Sys.Date(), ".RDS"))
 
 dataset_poli_nogs <- lapply(names(rst_fcm_poli_nogs_sc), function(n){
   aband <- rst_fcm_poli_nogs_sc[[n]]
