@@ -27,9 +27,9 @@ fcm_pmrc_attri <- rast("data/processed/rast_fcm_pmrc2024_2024-07-22.tif")
 fcm_pmrc_result <- rast("data/processed/FCM_pmrc_2024-07-22.tif")
 fmc_pmrc <- readRDS("data/processed/FCM_pmrc_2024-07-22.rds")
 
-fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-07-22.tif")
-fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-07-22.tif")
-fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-07-22.rds")
+fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-08-12.tif")
+fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-08-12.tif")
+fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-08-12.rds")
 
 fcm_poli_nogs_attri <- rast("data/processed/rast_fcm_poli_nogs_2024-07-22.tif")
 fcm_poli_nogs_result_01 <- rast("data/processed/FCM_poli_nogs_01_2024-07-22.tif")
