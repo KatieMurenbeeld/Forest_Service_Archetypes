@@ -19,7 +19,7 @@ projection <- "epsg:5070"
 #---Load the data-----
 whp_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
-arch_attri <- rast(here::here("data/processed/arch_attri_2024-07-19.tif"))
+arch_attri <- rast(here::here("data/processed/arch_attri_2024-08-12.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
 prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
 temp_seas <- rast(here::here("data/processed/temp_seas_3000m.tif"))
@@ -27,9 +27,9 @@ roughness <- rast(here::here("data/processed/roughness_3000m.tif"))
 trav_time <- rast(here::here("data/processed/trav_time_3000m.tif"))
 
 ## original rasters
-#tree_cover <- rast(here::here("data/original/nlcd_tcc_CONUS_2016_v2021-4.tif"))
-#tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
-#for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
+tree_cover <- rast(here::here("data/original/nlcd_tcc_CONUS_2016_v2021-4.tif"))
+tree_age <- rast(here::here("data/original/NA_TreeAge_1096/data/conus_age06_1km.tif"))
+for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
 
 # reproject whp_rast which will be used as the reference raster
 
@@ -60,32 +60,34 @@ trav_time_resamp <- resamp(trav_time, whp_rast_proj, "bilinear")
 # reproject and aggregate the og rasters
 # tree cover
 #tree_cover
-#tree_cover_proj <- project(tree_cover, projection)
-#tree_cover_proj_subs <- subst(tree_cover_proj, 254:255, 0)
-#tree_cover_proj_resamp_ave <- resample(tree_cover_proj_subs, whp_rast_proj, "average", threads = TRUE)
-#tree_cover_proj_crop <- crop(tree_cover_proj_resamp_ave, whp_rast_proj, mask = TRUE)
-#plot(tree_cover_proj_crop)
-#writeRaster(tree_cover_proj_crop, here::here("data/processed/tree_cover_cover_resamp.tif"))
+tree_cover_proj <- project(tree_cover, projection)
+tree_cover_proj_subs <- subst(tree_cover_proj, 254:255, 0)
+tree_cover_proj_resamp_ave <- resample(tree_cover_proj_subs, whp_rast_proj, "average", threads = TRUE)
+tree_cover_proj_crop <- crop(tree_cover_proj_resamp_ave, whp_rast_proj, mask = TRUE)
+plot(tree_cover_proj_crop)
+writeRaster(tree_cover_proj_crop, paste0(here::here("data/processed/"), 
+                                         "tree_cover_cover_resamp_", 
+                                         Sys.Date(), 
+                                         ".tif"))
 
-tree_cover_proj_crop <- rast(here::here("data/processed/tree_cover_cover_resamp.tif"))
+tree_cover_proj_crop <- rast(here::here("data/processed/tree_cover_cover_resamp_2024-08-09.tif"))
 
 # stand age
-#tree_age_proj <- project(tree_age, projection)
-#tree_age_agg_proj <- aggregate(tree_age_proj, fact = 3, fun = "mean", na.rm = TRUE)
-#tree_age_resamp <- resamp(tree_age_agg_proj, whp_rast_proj, "bilinear")
-#writeRaster(tree_age_resamp, here::here("data/processed/tree_age_conus_resamp.tif"))
+tree_age_proj <- project(tree_age, projection)
+tree_age_agg_proj <- aggregate(tree_age_proj, fact = 3, fun = "mean", na.rm = TRUE)
+tree_age_resamp <- resamp(tree_age_agg_proj, whp_rast_proj, "bilinear")
+writeRaster(tree_age_resamp, paste0(here::here("data/processed/"), 
+                                   "tree_age_conus_resamp_", 
+                                   Sys.Date(), 
+                                   ".tif"))
 
-tree_age_resamp <- rast(here::here("data/processed/tree_age_conus_resamp.tif"))
-# Check alignment and stack the rasters
+tree_age_resamp <- rast(here::here("data/processed/tree_age_conus_resamp_2024-08-09.tif"))
+
+#Check alignment and stack the rasters
 rast_stack <- c(arch_attri_resamp, whp_rast_proj, mill_change_resamp, prec_seas_resamp, 
                 temp_seas_resamp, roughness_resamp, trav_time_resamp, tree_age_resamp, 
                 tree_cover_proj_crop, forgain_resamp_crop)
 
 ## Save the raster
 writeRaster(x = rast_stack, filename = paste0(here::here("data/processed/"), "rast_stack_attributes_fill_", Sys.Date(), ".tif"), overwrite = TRUE)
-
-## Load in previous raster stack (no areafed, no fedrich, no privfor)
-rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_no_..._.tif"))
-## Stack on the final attributes
-rast_stack <- c(rast_stack_no, fedarea_rst, fedrich_rst, privfor_rst)
 
