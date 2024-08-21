@@ -17,12 +17,12 @@ library(tigris)
 projection <- "epsg:5070"
 
 #---Load the data-----
-whp_rast <- rast(here::here("data/processed/merged/WHP_merge3000m.tif"))
+whp_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 fed_rich <- rast(here::here("data/processed/conus_fed_rich_2024-06-12.tif"))
 fed_pct_area <- rast(here::here("data/processed/conus_fed_pctarea_2024-06-20.tif"))
 #forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 ## Load in previous raster stack (no areafed, no fedrich, no privfor)
-rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_fill_2024-07-19.tif"))
+rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_fill_2024-08-12.tif"))
 
 # reproject whp_rast which will be used as the reference raster
 
