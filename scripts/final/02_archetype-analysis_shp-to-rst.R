@@ -10,7 +10,7 @@ projection = "epsg:5070"
 #---Load the shapefiles-----
 
 # variables from csv county data
-all_vars <- st_read(here::here("data/processed/all_vars_to_rst_2024-07-19.shp"))
+all_vars <- st_read(here::here("data/processed/all_vars_to_rst_2024-08-12.shp"))
 
 # Wilderness areas
 wild <- st_read(here::here("data/original/S_USA.Wilderness.shp"))
@@ -28,7 +28,7 @@ cejst <- st_read(here::here("data/original/usa.shp"))
 #fed_shann <- st_read(here::here("data/processed/county_fed_shannon_div_even_2024-05-29.shp"))
 
 # fia productivity 
-fia_prod <- st_read(here::here("data/processed/conus_prod_fill_fia.shp"))
+fia_prod <- st_read(here::here("data/processed/conus_prod_fill_fia_2024-08-12.shp"))
 
 #---Load reference raster----
 ref_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
