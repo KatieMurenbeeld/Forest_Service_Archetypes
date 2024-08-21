@@ -1,0 +1,206 @@
+---
+title: "archetype analysis SGFCM"
+author: "Katie Murenbeeld"
+date: "08/16/2024"
+format:
+html:
+code-fold: true
+---
+
+```{r libraries}
+library(tidyverse)
+library(terra)
+library(raster)
+library(sf)
+library(ggplot2)
+library(tmap)
+library(geocmeans)
+library(RColorBrewer)
+library(viridis)
+library(future)
+library(spdep)
+```
+
+# Archetype Analysis Using Spatial Fuzzy C-Means
+
+Here I am following the general approach and workflow as presented by Jeremey Gelb for creating fuzzy clusters or archetypes SE attributes. See <https://cran.r-project.org/web/packages/geocmeans/vignettes/introduction.html> and <https://jeremygelb.github.io/geocmeans/articles/web_vignettes/rasters.html>.
+
+# Load and Format the Data
+
+Here we are using the raster stack of scaled data with the PMRC attributes and AIP.
+
+```{r load_format_data}
+
+# Load the data
+rst_fcm_pmrc_poli_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc_2024-08-12.tif"))
+rst_fcm_pmrc_poli <- rast(here::here("data/processed/rast_fcm_pmrc2024_ploi_2024-08-12.tif"))
+# Two different formats
+## geocmeans requires a simple list of SpatRaster
+dataset_pmrc_poli <- lapply(names(rst_fcm_pmrc_poli_sc), function(n){
+  aband <- rst_fcm_pmrc_poli_sc[[n]]
+  return(aband)
+})
+names(dataset_pmrc_poli) <- names(rst_fcm_pmrc_poli_sc)
+
+## other functions require the data in a data frame
+
+df_sc <- as.data.frame(rst_fcm_pmrc_poli_sc, xy=TRUE)
+df_sc_nogeo <- df_sc %>%
+  dplyr::select(-c("x", "y")) %>%
+  drop_na()
+
+## Create dataframes for ease of mapping and looking at results
+df_all <- as.data.frame(rst_fcm_pmrc_poli, xy = TRUE, na.rm = TRUE)
+df_all_sc <- as.data.frame(rst_fcm_pmrc_poli_sc, xy = TRUE, na.rm = TRUE)
+
+```
+
+# Classical K-means and Fuzzy C-means
+
+Use classical K-means and non-spatial fuzzy c-means to explore the data and pick values for *k* (number of clusters) and *m* (the fuzzifier parameter).
+
+```{r k-means}
+# finding the best k by using the r2 of the classification
+# trying for k from 2 to 10
+R2s <- sapply(2:10,function(k){
+  Clust <- kmeans(df_sc_nogeo, 
+                  centers = k,
+                  iter.max = 150)
+  R2 <- Clust$betweenss / Clust$totss
+  return(R2)
+})
+
+kmeans_df <- data.frame(K=2:10,
+                        R2 = R2s)
+
+# create an elbow plot of R2s and K
+ggplot(kmeans_df)+
+  geom_line(aes(x=K,y=R2s))+
+  geom_point(aes(x=K,y=R2s),color="red")+
+  xlab("Number of groups")+
+  ylab("R2 of classification")
+```
+
+From the classical k-means a good number of clusters would be 4.
+
+However, that only explains about 0.38 of the variance.
+
+Previously we used non-spatial fuzzy c-means to determine a good *k* and *m* by looking at the silhouette index. We chose *k* = 8 and *m* = 1.6
+
+```{r fcm_param}
+#FCMvalues <- select_parameters.mc(algo = "FCM", data = dataset_pmrc_poli, 
+#                                  k = 2:10, m = seq(1.2,2,0.1), spconsist = FALSE, 
+#                                  indices = c("XieBeni.index", "Explained.inertia",
+#                                              "Negentropy.index", "Silhouette.index"),
+#                                  verbose = TRUE)
+
+FCMvalues <- read_csv(here::here("outputs/fcm_pmrc_poli_indices_2024-07-22.csv"))
+sil.idx.fcm <- ggplot(FCMvalues) + 
+  geom_raster(aes(x = m, y = k, fill = Silhouette.index)) + 
+  geom_text(aes(x = m, y = k, label = round(Silhouette.index,2)), size = 2) +
+  coord_fixed(ratio=0.125) +
+  scale_fill_viridis()
+sil.idx.fcm
+```
+
+# Generalized FCM
+
+We can also use a generalized version of the FCM which includes a *beta* value. The *beta* value controls the strength of the updates to the membership matrix. FCM is an iterative approach that will run until convergence or to some threshold is met, i.e. the distance between the center of clusters from one iteration to the next are less than a set threshold.
+
+```{r gfcm_param}
+GFCMvalues <- select_parameters.mc(algo = "GFCM", data = dataset_pmrc_poli,
+                                   k = 8, m = 1.6, beta = seq(0.1,0.9,0.1),
+                                   spconsist = FALSE, verbose = TRUE, init = "kpp",
+                                   indices = c("XieBeni.index", "Explained.inertia",
+                                               "Negentropy.index", "Silhouette.index"))
+
+# showing the silhouette index
+ggplot(GFCMvalues) + 
+  geom_raster(aes(x = m, y = beta, fill = Silhouette.index)) + 
+  geom_text(aes(x = m, y = beta, label = round(Silhouette.index,2)), size = 2)+
+  scale_fill_viridis() +
+  coord_fixed(ratio=1)
+```
+
+From this we can set *beta* = 0.1.
+
+# Spatial FCM and Spatial GFCM
+
+Now that we have determined our *k*, *m*, and (potentially) *beta* we move on to using the spatial version of the FCM and GFCM. We will select an *alpha* parameter which basically acts a spatial smoothing parameter.
+
+```{r sfcm_param}
+# set different window sizes, squares since we are working with rasters
+w1 <- matrix(1, nrow = 3, ncol = 3)
+w2 <- matrix(1, nrow = 5, ncol = 5)
+w3 <- matrix(1, nrow = 7, ncol = 7)
+
+SFCMvalues <- select_parameters.mc(algo = "SFCM", data = dataset_pmrc_poli, 
+                                          k = 8, m = 1.6,
+                                          alpha = seq(0.5,2,0.1),
+                                          window = list(w1,w2,w3),
+                                          spconsist = TRUE, nrep = 5, 
+                                          verbose = TRUE, chunk_size = 4,
+                                          seed = 6891, init = "kpp",
+                                          indices = c("XieBeni.index", "Explained.inertia",
+                                                      "Negentropy.index", "Silhouette.index"))
+
+
+dict <- data.frame(
+  w = c(1,2,3),
+  window = c("3x3","5x5","7x7")
+)
+
+SFCMvalues$window <- dict$window[match(SFCMvalues$window,dict$w)]
+
+# showing the silhouette index
+ggplot(SGFCMvalues) + 
+  geom_raster(aes(x = alpha, y = window, fill = Silhouette.index)) + 
+  geom_text(aes(x = alpha, y = window, label = round(Silhouette.index,2)), size = 1.5)+
+  scale_fill_viridis() +
+  coord_fixed(ratio=0.125)
+```
+
+Even though we have already chosen a *beta* we can confirm our choice by completing another grid search for the *alpha-beta* pair that will produce a high silhouette index.
+
+```{r sgfcm_param}
+## looking at alpha and beta for SGFCM
+future::plan(future::multisession(workers=2))
+DFindices_SFGCM <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli,
+                                       k = 8, m = 1.625, 
+                                       beta = seq(0,1.0,0.1), alpha = seq(0,2,0.1),
+                                       window = w1, spconsist = TRUE, nrep = 5, 
+                                       verbose = TRUE, chunk_size = 4,
+                                       seed = 456, init = "kpp",
+                                       indices = c("XieBeni.index", "Explained.inertia",
+                                                   "Negentropy.index", "Silhouette.index"))
+
+ggplot(DFindices_SFGCM) + 
+  geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index),  size = 5) + 
+  scale_fill_viridis() +
+  coord_fixed(ratio=1)
+```
+
+We find that *beta* = 0.1 and *alpha* = 1.3 or 1.6 produce the highest silhouette index values.
+
+```{r sgfcm_model}
+
+SGFCM_result <- SGFCMeans(dataset_pmrc_poli, k = 8, m = 1.6, standardize = FALSE,
+                          lag_method = "mean",
+                          window = w1, alpha = 1.3, beta = 0.1,
+                          seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
+
+```
+
+# Compare the maps and metrics between FCM, GFCM, SFCM, and SGFCM
+
+# For the SGFCM: Global and Local Moran's I and Belonging
+
+# For the SGFCM: ELSA and Fuzzy ELSA
+
+# For the SGFCM: Bootstrap Cluster Stability
+
+# Tables with Global and Cluster Means and SDs for the Attributes
+
+Use summarizeClusters() function
+
+# Violin Plots
