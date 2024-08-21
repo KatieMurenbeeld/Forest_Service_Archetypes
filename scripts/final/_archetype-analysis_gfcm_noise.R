@@ -9,7 +9,7 @@ library(viridis)
 library(raster)
 
 # Load the data
-rst_fcm_pmrc_poli_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc.tif"))
+rst_fcm_pmrc_poli_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc_2024-08-12.tif"))
 
 # Format for use in geocmeans
 dataset_pmrc_poli <- lapply(names(rst_fcm_pmrc_poli_sc), function(n){
