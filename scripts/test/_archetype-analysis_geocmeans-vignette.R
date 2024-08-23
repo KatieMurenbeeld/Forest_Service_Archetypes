@@ -148,15 +148,20 @@ SFCM_result <- SFCMeans(dataset_pmrc_poli, k = 8, m = 1.6, standardize = FALSE,
                           lag_method = "mean",
                           window = w1, alpha = 1.3,
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
+saveRDS(SFCM_result, here::here(paste0("data/processed/SFCM_result_pmrc_poli_", Sys.Date(), ".rds")))
 
-maps_sfcm <- mapClusters(object = SFCM_result, undecided = 0.2)
+map_SFCM_result <- rast(SFCM_result$rasters)
+plot(map_SFCM_result[["Groups"]])
+writeRaster(map_SFCM_result[["Groups"]], filename = paste0("data/processed/SFCM_result_pmrc_poli_", Sys.Date(), ".tif"))
+
+maps_sfcm_undecide02 <- mapClusters(object = SFCM_result, undecided = 0.2)
 
 # plotting the most likely categories
-maps_sfcm$ClusterPlot + theme(legend.position = "bottom") + 
+maps_sfcm_undecide02$ClusterPlot + theme(legend.position = "bottom") + 
   scale_fill_brewer(palette = "Set3")
 
 # Spatial GFCM
-
+# Start here when you get home. 
 future::plan(future::multisession(workers = 2))
 SGFCMvalues_m16 <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli, 
                                     k = 8, m = 1.6,
@@ -179,21 +184,21 @@ SGFCMvalues_m16$window <- dict$window[match(SGFCMvalues_m16$window,dict$w)]
 write_csv(SGFCMvalues_m16, here::here(paste0("outputs/sgfcm_pmrc_poli_indices_", Sys.Date(), ".csv")), append = FALSE)
 
 # showing the silhouette index
-ggplot(SGFCMvalues_m1625) + 
+ggplot(SGFCMvalues_m16) + 
   geom_raster(aes(x = alpha, y = window, fill = Silhouette.index)) + 
   geom_text(aes(x = alpha, y = window, label = round(Silhouette.index,2)), size = 1.5)+
   scale_fill_viridis() +
   coord_fixed(ratio=0.125)
 
 # showing the explained inertia
-ggplot(SGFCMvalues_m1625) + 
+ggplot(SGFCMvalues_m16) + 
   geom_raster(aes(x = alpha, y = window, fill = Explained.inertia)) + 
   geom_text(aes(x = alpha, y = window, label = round(Explained.inertia,2)), size = 1.5)+
   scale_fill_viridis() +
   coord_fixed(ratio=0.125)
 
 # showing the spatial inconsistency
-ggplot(SGFCMvalues_m1625) + 
+ggplot(SGFCMvalues_m16) + 
   geom_raster(aes(x = alpha, y = window, fill = spConsistency)) + 
   geom_text(aes(x = alpha, y = window, label = round(spConsistency,2)), size = 1.5)+
   scale_fill_viridis() +
@@ -211,8 +216,9 @@ SGFCM_result <- SGFCMeans(dataset_pmrc_poli, k = 8, m = 1.6, standardize = FALSE
                           lag_method = "mean",
                           window = w1, alpha = 1.3, beta = 0.1,
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
+saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".rds")))
 
-maps_sgfcm <- mapClusters(object = SGFCM_result, undecided = 0)
+maps_sgfcm <- mapClusters(object = SGFCM_result, undecided = 0.2)
 
 # plotting the most likely categories
 maps_sgfcm$ClusterPlot + theme(legend.position = "bottom") + 
@@ -222,7 +228,7 @@ maps_sgfcm$ClusterPlot + theme(legend.position = "bottom") +
 
 ## looking at alpha and beta for SGFCM
 future::plan(future::multisession(workers=2))
-DFindices_SFGCM <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli,
+DFindices_SGFCM <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli,
                                        k = 8, m = 1.625, 
                                        beta = seq(0,1.0,0.1), alpha = seq(0,2,0.1),
                                        window = w1, spconsist = TRUE, nrep = 5, 
@@ -230,8 +236,9 @@ DFindices_SFGCM <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli
                                        seed = 456, init = "kpp",
                                        indices = c("XieBeni.index", "Explained.inertia",
                                                    "Negentropy.index", "Silhouette.index"))
+write_csv(DFindices_SGFCM, here::here(paste0("outputs/sgfcm_pmrc_poli_indices_alpha_beta_", Sys.Date(), ".csv")), append = FALSE)
 
-ggplot(DFindices_SFGCM) + 
+ggplot(DFindices_SGFCM) + 
   geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index),  size = 5) + 
   scale_fill_viridis() +
   coord_fixed(ratio=1)
