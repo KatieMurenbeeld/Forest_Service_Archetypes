@@ -271,6 +271,15 @@ arche2 <- pals_purpose_arch_pct_area %>%
   mutate(archetype = "two", 
          pct_purpose = values/sum(values) * 100)
 
+arche6 <- pals_purpose_arch_pct_area %>%
+  filter(`6` >= 70.0) %>%
+  pivot_longer(cols = starts_with("count"), 
+               names_to = "purpose") %>%
+  group_by(purpose) %>%
+  summarise(values = sum(value)) %>%
+  mutate(archetype = "six", 
+         pct_purpose = values/sum(values) * 100)
+
 arche_no_dom <- pals_purpose_arch_pct_area %>%
   filter(`1` < 70 & `2` < 70 & `3` < 70 & `4` < 70 & `5` < 70 & `6` < 70 & `7` < 70 & `8` < 70) %>%
   filter(FOREST_ID != "0000" | FOREST_ID != "1004" | FOREST_ID != "1005" | FOREST_ID != "2400" | FOREST_ID != "2403" | FOREST_ID != "2408") %>%
