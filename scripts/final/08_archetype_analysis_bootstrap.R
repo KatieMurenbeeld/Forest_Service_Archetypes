@@ -325,15 +325,25 @@ boot_group_validation_test <- function(object, nsim = 1000, maxiter = 1000, tol 
 sgfcm_pmrc_poli_bootvalues_test <- boot_group_validation_test(SGFCM_result, nsim = 10, maxiter = 10, 
                                                     tol = 0.0001, verbose = TRUE)
 
+sgfcm_pmrc_poli_bootvalues <- boot_group_validation_test(SGFCM_result, nsim = 100, maxiter = 100, 
+                                                              tol = 0.0001, verbose = TRUE)
+
+sgfcm_pmrc_poli_bootvalues1000 <- boot_group_validation_test(SGFCM_result, nsim = 1000, maxiter = 1000, 
+                                                         tol = 0.0001, verbose = TRUE)
+# Keeps crashing due to memory. Need to run on Borah.
+
+#sgfcm_melted_df <- reshape2::melt(sgfcm_pmrc_poli_bootvalues_test$group_consistency)
 sgfcm_melted_df <- reshape2::melt(sgfcm_pmrc_poli_bootvalues_test$group_consistency)
 
 sgfcm_melted_df$variable <- as.factor(sgfcm_melted_df$variable)
 
-ggplot() +
+sgfcm_pmrc_poli_boot100 <- ggplot() +
   geom_histogram(mapping = aes(x = value), data = sgfcm_melted_df, bins = 30) +
-  labs(title = "all attributes: stability of clusters", subtitle = "for 10 iterations",
+  labs(title = "all attributes: stability of clusters", subtitle = "for 1000 iterations",
        x = "Jaccard index") +
   facet_wrap(vars(variable), ncol=3)
+sgfcm_pmrc_poli_boot100
 
-
+ggsave(filename = paste0("/Users/katiemurenbeeld/Analysis/Archetype_Analysis/figures/sgfcm_pmrc_poli_boot100_", Sys.Date(), ".png"),
+       plot = sgfcm_pmrc_poli_boot100, height = 4, width = 4, dpi = 300)
 
