@@ -31,6 +31,7 @@ df_nogeo <- df %>%
 # Create a dataframe for ease of mapping and looking at results
 df_all <- as.data.frame(rst_fcm_pmrc_poli, xy = TRUE, na.rm = TRUE)
 df_all_sc <- as.data.frame(rst_fcm_pmrc_poli_sc, xy = TRUE, na.rm = TRUE)
+df_all_zsc <- as.data.frame(scale(rst_fcm_pmrc_poli), xy = TRUE, na.rm = TRUE)
 
 #----Use Classical Kmeans to explore the data---- 
 #----and choose the right number of clusters k
@@ -218,13 +219,21 @@ SGFCM_result <- SGFCMeans(dataset_pmrc_poli, k = 8, m = 1.6, standardize = FALSE
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
 saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".rds")))
 
+map_SGFCM_result <- rast(SGFCM_result$rasters)
+plot(map_SGFCM_result[["Groups"]])
+writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".tif"))
+
 maps_sgfcm <- mapClusters(object = SGFCM_result, undecided = 0.2)
 
 # plotting the most likely categories
-maps_sgfcm$ClusterPlot + theme(legend.position = "bottom") + 
+sgfcm_undecided <- maps_sgfcm$ClusterPlot + theme(legend.position = "bottom") + 
   scale_fill_brewer(palette = "Set3")
+ggsave(filename = here::here(paste0("figures/sgfcm_undecided_cluster_", Sys.Date(), ".png")),
+       plot = sgfcm_undecided, 
+       width = 12, height = 12, dpi = 300)
 
-
+# violin plots
+violinPlots(df_all_zsc, SGFCM_result$Groups)
 
 ## looking at alpha and beta for SGFCM
 future::plan(future::multisession(workers=2))
