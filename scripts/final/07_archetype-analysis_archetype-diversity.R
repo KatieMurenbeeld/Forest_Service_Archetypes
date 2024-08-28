@@ -16,6 +16,11 @@ fcm_pmrc_poli_attri <- rast("data/processed/rast_fcm_pmrc2024_ploi_2024-07-22.ti
 fcm_pmrc_poli_result <- rast("data/processed/FCM_pmrc_poli_2024-07-22.tif")
 fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-07-22.rds")
 
+sgfcm_pmrc_poli_attri_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc_2024-08-12.tif"))
+sgfcm_pmrc_poli_attri <- rast(here::here("data/processed/rast_fcm_pmrc2024_ploi_2024-08-12.tif"))
+sgfmc_pmrc_poli_result <- rast(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.tif"))
+sgfcm_pmrc_poli <- readRDS(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.rds"))
+
 ## Reproject the forest service shapes and crop
 projection <- "epsg: 5070"
 
@@ -23,13 +28,13 @@ fs_nf.proj <- fs_nf %>%
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
 
-fs_nf.crop <- st_crop(fs_nf.proj, ext(fcm_pmrc_poli_attri))
+fs_nf.crop <- st_crop(fs_nf.proj, ext(sgfcm_pmrc_poli_attri))
 
 fs_reg.proj <- fs_reg %>% 
   filter(REGION != "10") %>%
   st_transform(., crs=projection)
 
-fs_reg.crop <- st_crop(fs_reg.proj, ext(fcm_pmrc_poli_attri))
+fs_reg.crop <- st_crop(fs_reg.proj, ext(sgfcm_pmrc_poli_attri))
 
 # Union all of the national forests
 nf_union <- st_union(fs_nf.crop)
@@ -53,15 +58,18 @@ nf_buffers <- function(area_with_nf, area_with_nf_buf_dif){
   return(nf_buffs)
 }
 
-buffers <- nf_buffers(fs_nf.crop, nf_union_dif)  
+nf_buffs <- nf_buffers(fs_nf.crop, nf_union_dif)
 
 # Calculate a diversity metric for the archetypes within the buffer zone
 ## crop archetype attributes and fcm results to the buffer shape
 ## calculate the proportion of the area covered by each archetype (area archetype / total area)
 ## using the proportions, calculate Shannon Diversity Index (-sum(species_proportions * log(species_proportions)))
+## want to do this for the Regions as well 
 
-v <- buffers %>% st_cast("MULTIPOLYGON")
-z <- crop(fcm_pmrc_poli_result, v, mask = TRUE)
+buff <- buffers_100
+
+v <- buff %>% st_cast("MULTIPOLYGON")
+z <- crop(sgfmc_pmrc_poli_result, v, mask = TRUE)
 
 x <- exact_extract(z, v, coverage_area = TRUE)
 names(x) <- v$FORESTORGC
@@ -70,43 +78,38 @@ areas <- bind_rows(x, .id = "FORESTORGC") %>%
   group_by(FORESTORGC, value) %>%
   summarize(total_arch_area = sum(coverage_area)) %>%
   group_by(FORESTORGC) %>%
-  mutate(proportion_pct = round((total_arch_area/sum(total_arch_area))*100, 2))
+  mutate(proportion_pct = round((total_arch_area/sum(total_arch_area))*100, 2)) %>%
+  mutate(proportion = (total_arch_area/sum(total_arch_area)))
 
 areas <- areas %>% 
   replace_na(list(value = 0))
-
-areas_dom_arch <- areas %>%
-  group_by(FORESTORGC) %>%
-  filter(proportion_pct >= 70.0) %>%
-  ungroup()
-
-areas_no_dom <- areas %>%
-  group_by(FORESTORGC) %>%
-  filter(proportion_pct < 70.0) %>%
-  ungroup()
 
 shan_h <- areas %>%
   dplyr::select(FORESTORGC, proportion_pct) %>%
   group_by(FORESTORGC) %>%
   summarise(shan_div = -sum(proportion_pct * log(proportion_pct)))
+# I did something here - check an earlier version
+shan_h <- function(areas) {
+  shan_h <- areas %>%
+    dplyr::select(FORESTORGC, proportion) %>%
+    group_by(FORESTORGC) %>%
+    summarise(shan_div = -sum(proportion * log(proportion)))
+  return (shan_h)
+}
 
 # join to sf!
-shan_h_sf <- shan_h %>%
+# I did something here - check an earlier version
+shan_h_sf <- function(shan_h){
+  shan_h_sf <- shan_h %>%
   left_join(fs_nf.crop, by = "FORESTORGC")
-
 shan_h_sf <- st_as_sf(shan_h_sf)
-
-# and plot
-#fcm_reg4 <- crop(fcm_no_gs_result, reg4_nf)
-
-#fcm.id <- fcm_reg4$Groups %>% as.data.frame(xy = TRUE)
+  shan_h_sf <- st_as_sf(shan_h_sf)
+  return(shan_h_sf)
+}
 
 shan_conus <- ggplot() +
-  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
   geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
   geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
-  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
-  #scale_fill_brewer(palette = "Set2") +
   labs(title = "Shannon Entropy (H) of Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
@@ -116,7 +119,7 @@ shan_conus <- ggplot() +
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus
 
-## breadcrumb: add region and state boundaries
+## Add region and state boundaries
 
 # create the list of CONUS states 
 us.abbr <- unique(fips_codes$state)[1:51]
@@ -134,12 +137,9 @@ states <- states %>%
   filter(STUSPS %in% continental.states$state)
 
 shan_conus_states <- ggplot() +
-  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
   geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.1) +
   geom_sf(data = states, fill = NA, color = "black") +
   geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
-  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
-  #scale_fill_brewer(palette = "Set2") +
   labs(title = "Shannon Entropy (H) of Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
@@ -148,16 +148,13 @@ shan_conus_states <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_states
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_states_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_states, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/shan_conus_states_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_states, width = 12, height = 12, dpi = 300)  
 
 
 shan_conus_reg <- ggplot() +
-  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
   geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black") +
   geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
-  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
-  #scale_fill_brewer(palette = "Set2") +
   labs(title = "Shannon Entropy (H) of Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
@@ -166,16 +163,13 @@ shan_conus_reg <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_reg
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_reg_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/shan_conus_reg_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
 
 shan_conus_reg_state <- ggplot() +
-  #geom_raster(aes(x = fcm.id$x, y = fcm.id$y, fill = as.factor(fcm.id$Groups))) +
-  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
-  geom_sf(data = states, fill = NA, color = "black") +
-  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = states, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.5) +
   geom_sf(data = shan_h_sf, aes(fill = shan_div)) +
-  #geom_sf(data = reg4_union_dif, fill = NA, color = "black") +
-  #scale_fill_brewer(palette = "Set2") +
   labs(title = "Shannon Entropy (H) of Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
@@ -184,7 +178,7 @@ shan_conus_reg_state <- ggplot() +
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 shan_conus_reg_state
-ggsave(paste0("~/Analysis/NEPA_Efficiency/figures/shan_conus_reg_state_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/shan_conus_reg_state_pmrc_poli_", Sys.Date(), ".png"), plot = shan_conus_reg, width = 12, height = 12, dpi = 300)  
 
 #----Archetype Validation with Common Project Types----
 
@@ -195,7 +189,7 @@ pals_df <- read_delim("~/Analysis/NEPA_Efficiency/data/original/pals_ongoing_pro
 # Filter for date and select Forest Number and Purposes
 pals_df_2009 <- pals_df %>%
   filter(as.Date(`INITIATION DATE`, format = "%m/%d/%Y") >= "2009-01-01") %>%
-  select(FOREST_ID, `FC Facility management – purpose`, 
+  dplyr::select(FOREST_ID, `FC Facility management – purpose`, 
        `FR Research – purpose`, `HF Fuels management – purpose`, `HR Heritage resource management – purpose`,
        `LM Land ownership management – purpose`, `LW Land acquisition – purpose`,
        `MG Minerals and geology – purpose`, `PN Land management planning – purpose`,
@@ -225,7 +219,7 @@ pals_df_2009 <- pals_df %>%
             count_WM = sum(`WM Water management – purpose`))
 
 areas_wide <- areas %>%
-  select(-total_arch_area) %>%
+  dplyr::select(-total_arch_area) %>%
   pivot_wider(names_from = value, values_from = proportion_pct)
 
 pals_purpose_arch_pct_area <- left_join(pals_df_2009, areas_wide, by = join_by(FOREST_ID == FORESTORGC)) %>%
@@ -271,6 +265,15 @@ arche2 <- pals_purpose_arch_pct_area %>%
   mutate(archetype = "two", 
          pct_purpose = values/sum(values) * 100)
 
+arche8 <- pals_purpose_arch_pct_area %>%
+  filter(`8` >= 70.0) %>%
+  pivot_longer(cols = starts_with("count"), 
+               names_to = "purpose") %>%
+  group_by(purpose) %>%
+  summarise(values = sum(value)) %>%
+  mutate(archetype = "eight", 
+         pct_purpose = values/sum(values) * 100)
+
 arche6 <- pals_purpose_arch_pct_area %>%
   filter(`6` >= 70.0) %>%
   pivot_longer(cols = starts_with("count"), 
@@ -291,20 +294,25 @@ arche_no_dom <- pals_purpose_arch_pct_area %>%
          pct_purpose = values/sum(values) * 100)
 
 #arche1.4 <- left_join(arche1, arche4)
-arche_purposes <- rbind(arche1, arche2, arche3, arche4, arche_no_dom)
+arche_purposes <- rbind(arche2, arche8, arche_no_dom)
 
 arche_purposes$archetype <- factor(arche_purposes$archetype,
-                                   levels = c("one", "two", "three", "four", "no dominant archetype (>70%)"))
+                                   levels = c("two", "eight", "no dominant archetype (>70%)"))
 
 ggplot(arche_no_dom, aes(x=purpose, y = pct_purpose)) +
   geom_bar(stat="identity", width = 0.7, fill = "steelblue") +
   theme_minimal()
 
-ggplot(arche_purposes, aes(x=purpose, y = pct_purpose, fill = archetype)) +
+arch28_purpose <- ggplot(arche_purposes, aes(x=purpose, y = pct_purpose, fill = archetype)) +
   geom_bar(stat = "identity", width = 0.7, position = position_dodge()) +
-  scale_fill_discrete(limits=c("one", "two", "three", "four", "no dominant archetype (>70%)")) + 
-  theme_minimal()
-
+  scale_fill_discrete(limits=c("two", "eight", "no dominant archetype (>70%)")) + 
+  theme_minimal() + 
+  theme_bw()
+arch28_purpose
+ggsave(filename = here::here("figures/archetype_validation_test_2024-08-26.png"), 
+       plot = arch28_purpose, 
+       width = 14, 
+       height = 4, dpi = 300)
 
 
 #----What does this mean for NEPA assessment times?----
