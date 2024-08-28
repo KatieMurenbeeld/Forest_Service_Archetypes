@@ -46,7 +46,7 @@ reg4_union_dif <- st_difference(reg4_union_buf, reg4_union)
 
 # Create a buffer around the test NF
 test_nf <- fs_nf.crop %>%
-  filter(FORESTORGC == "0415")
+  filter(FORESTORGC == "0413")
 test_nf_buf <- st_buffer(test_nf, dist = 50000)
 plot(test_nf_buf$geometry)
 
@@ -80,11 +80,17 @@ for2 <- test_buffers %>%
   filter(FORESTORGC == "0417")
 for3 <- test_buffers %>%
   filter(FORESTORGC == "0402")
+for4 <- test_buffers %>%
+  filter(FORESTORGC == "0401")
 
 plot(reg4_union_dif)
-plot(for1$geometry, col = "blue", add = TRUE)
-plot(for2$geometry, col = "red", add = TRUE)
-plot(for3$geometry, col = "green", add = TRUE)
+plot(for1$geometry, col = "blue", add = TRUE, alpha = 0.3)
+plot(for2$geometry, col = "red", add = TRUE, alpha = 0.3)
+plot(for3$geometry, col = "green", add = TRUE, alpha = 0.3)
+plot(for4$geometry, col = "orange", add = TRUE, alpha = 0.3)
+
+
+
 
 # Calculate a diversity metric for the archetypes within the buffer zone
 ## crop archetype attributes and fcm results to the buffer shape
