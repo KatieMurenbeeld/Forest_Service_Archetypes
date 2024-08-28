@@ -88,6 +88,7 @@ shan_h <- areas %>%
   dplyr::select(FORESTORGC, proportion_pct) %>%
   group_by(FORESTORGC) %>%
   summarise(shan_div = -sum(proportion_pct * log(proportion_pct)))
+
 # I did something here - check an earlier version
 shan_h <- function(areas) {
   shan_h <- areas %>%
@@ -98,11 +99,14 @@ shan_h <- function(areas) {
 }
 
 # join to sf!
+shan_h_sf <- shan_h %>%
+  left_join(fs_nf.crop, by = "FORESTORGC")
+shan_h_sf <- st_as_sf(shan_h_sf)
+
 # I did something here - check an earlier version
 shan_h_sf <- function(shan_h){
   shan_h_sf <- shan_h %>%
   left_join(fs_nf.crop, by = "FORESTORGC")
-shan_h_sf <- st_as_sf(shan_h_sf)
   shan_h_sf <- st_as_sf(shan_h_sf)
   return(shan_h_sf)
 }
