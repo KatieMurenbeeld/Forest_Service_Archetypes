@@ -6,7 +6,7 @@ library(patchwork)
 library(geocmeans)
 library(exactextractr)
 library(tidyverse)
-library(ggsn)
+#library(ggsn)
 
 # load the attribute data
 rst_fcm_pmrc_poli_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc_2024-08-12.tif"))
@@ -46,6 +46,9 @@ nf_create_buffers <- function(area_with_nf, dist_m){
 }
 
 nf_buffers <- nf_create_buffers(fs_nf.crop, 50000)
+#write_sf(nf_buffers, here::here(paste0("data/processed/nf_buffers_50k_", 
+#                                       Sys.Date(), 
+#                                       ".shp")))
 
 # get the average elsa score for each forest
 nf_calc_elsa <- function(area_to_calc, elsa_rast){
@@ -54,7 +57,7 @@ nf_calc_elsa <- function(area_to_calc, elsa_rast){
   for (nf in 1:l) {
     tmp_nf <- area_to_calc %>%
       filter(FORESTORGC == area_to_calc$FORESTORGC[nf])
-    e <- extract(elsa_rast, tmp_nf, fun=mean, na.rm = TRUE)
+    e <- terra::extract(elsa_rast, tmp_nf, fun=mean, na.rm = TRUE)
     e$ID <- tmp_nf$FORESTORGC
     felsa_means <- rbind(felsa_means, e)
   }
@@ -80,6 +83,8 @@ felsa_sf <- left_join(felsa_sf, felsa_mean_eco, by = "FORESTORGC")
 felsa_sf <- left_join(felsa_sf, felsa_mean_soc, by = "FORESTORGC")
 
 felsa_sf <- st_as_sf(felsa_sf)
+#write_sf(felsa_sf, here::here(paste0("data/processed/felsa_nf_", 
+#                                     Sys.Date(), ".shp")))
 
 # get the average elsa score for each region
 reg_calc_elsa <- function(area_to_calc, elsa_rast){
@@ -88,7 +93,7 @@ reg_calc_elsa <- function(area_to_calc, elsa_rast){
   for (nf in 1:l) {
     tmp_nf <- area_to_calc %>%
       filter(REGION == area_to_calc$REGION[nf])
-    e <- extract(elsa_rast, tmp_nf, fun=mean, na.rm = TRUE)
+    e <- terra::extract(elsa_rast, tmp_nf, fun=mean, na.rm = TRUE)
     e$ID <- tmp_nf$REGION
     felsa_means <- rbind(felsa_means, e)
   }
@@ -115,6 +120,9 @@ felsa_reg_sf <- left_join(felsa_reg_sf, felsa_mean_soc_reg, by = "REGION")
 
 felsa_reg_sf <- st_as_sf(felsa_reg_sf)
 
+#write_sf(felsa_reg_sf, here::here(paste0("data/processed/felsa_reg_", 
+#                                     Sys.Date(), ".shp")))
+
 ## Make Maps
 felsa_all_df <- fuzzy_elsa_all$pct_forpay_fill %>% as.data.frame(xy = TRUE)
 felsa_soc_df <- fuzzy_elsa_soc$pct_forpay_fill %>% as.data.frame(xy = TRUE)
@@ -137,7 +145,8 @@ felsa_all_nf_map <- ggplot() +
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
-
+ggsave(here::here(paste0("figures/felsa_all_nf_", Sys.Date(), ".png")), 
+       felsa_all_nf_map, height = 6, width = 4, dpi = 300)
 felsa_all_nf_map
 
 
