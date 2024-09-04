@@ -14,7 +14,7 @@ rst_fcm_pmrc_poli <- rast(here::here("data/processed/rast_fcm_pmrc2024_ploi_2024
 
 # load the fuzzy elsa rasters
 fuzzy_elsa_all <- rast(here::here("data/processed/SGFCM_felsa_2024-09-04.tif"))
-fuzzy_elsa_eco <- rast(here::here("data/processed/SGFCM_eco_felsa_2024-09-03.tif"))
+fuzzy_elsa_eco <- rast(here::here("data/processed/SGFCM_eco_felsa_2024-09-04.tif"))
 fuzzy_elsa_soc <- rast(here::here("data/processed/SGFCM_soc_felsa_2024-09-04.tif"))
 
 # Load the USFS boundaries
@@ -83,8 +83,8 @@ felsa_sf <- left_join(felsa_sf, felsa_mean_eco, by = "FORESTORGC")
 felsa_sf <- left_join(felsa_sf, felsa_mean_soc, by = "FORESTORGC")
 
 felsa_sf <- st_as_sf(felsa_sf)
-#write_sf(felsa_sf, here::here(paste0("data/processed/felsa_nf_", 
-#                                     Sys.Date(), ".shp")))
+write_sf(felsa_sf, here::here(paste0("data/processed/felsa_nf_", 
+                                     Sys.Date(), ".shp")), overwrite = TRUE)
 
 # get the average elsa score for each region
 reg_calc_elsa <- function(area_to_calc, elsa_rast){
@@ -120,34 +120,80 @@ felsa_reg_sf <- left_join(felsa_reg_sf, felsa_mean_soc_reg, by = "REGION")
 
 felsa_reg_sf <- st_as_sf(felsa_reg_sf)
 
-#write_sf(felsa_reg_sf, here::here(paste0("data/processed/felsa_reg_", 
-#                                     Sys.Date(), ".shp")))
+write_sf(felsa_reg_sf, here::here(paste0("data/processed/felsa_reg_", 
+                                     Sys.Date(), ".shp")), overwrite = TRUE)
 
 ## Make Maps
 felsa_all_df <- fuzzy_elsa_all$pct_forpay_fill %>% as.data.frame(xy = TRUE)
 felsa_soc_df <- fuzzy_elsa_soc$pct_forpay_fill %>% as.data.frame(xy = TRUE)
 felsa_eco_df <- fuzzy_elsa_eco$mean_forprod_fia %>% as.data.frame(xy = TRUE)
 
+## Map with NF boundaries and all attributes
 felsa_all_nf_map <- ggplot() +
   geom_raster(aes(x = felsa_all_df$x, y = felsa_all_df$y, fill = felsa_all_df$pct_forpay_fill)) +
   geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
   #geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
   labs(title = "Fuzzy ELSA: All Attributes") +
   scale_fill_gradient2(
-    low = "grey", 
-    mid = "white", 
+    low = "white", 
+    mid = "lightgrey", 
     high = "blue4", 
     midpoint = median(felsa_all_df$pct_forpay_fill)
   ) +
   theme_bw() + 
   theme(text = element_text(size = 20),
-        legend.position = "bottom",
+        legend.position = "none",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 ggsave(here::here(paste0("figures/felsa_all_nf_", Sys.Date(), ".png")), 
-       felsa_all_nf_map, height = 6, width = 4, dpi = 300)
-felsa_all_nf_map
+       felsa_all_nf_map, height = 5, width = 7, dpi = 300)
+#felsa_all_nf_map
+
+## Map with NF boundaries and social attributes
+felsa_soc_nf_map <- ggplot() +
+  geom_raster(aes(x = felsa_soc_df$x, y = felsa_soc_df$y, fill = felsa_soc_df$pct_forpay_fill)) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  #geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  labs(title = "Fuzzy ELSA: Social Attributes") +
+  scale_fill_gradient2(
+    low = "white", 
+    mid = "lightgrey", 
+    high = "blue4", 
+    midpoint = median(felsa_soc_df$pct_forpay_fill)
+  ) +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "none",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+ggsave(here::here(paste0("figures/felsa_soc_nf_", Sys.Date(), ".png")), 
+       felsa_soc_nf_map, height = 5, width = 7, dpi = 300)
+#felsa_soc_nf_map
+
+## Map with NF boundaries and ecological attributes
+felsa_eco_nf_map <- ggplot() +
+  geom_raster(aes(x = felsa_eco_df$x, y = felsa_eco_df$y, fill = felsa_eco_df$mean_forprod_fia)) +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
+  #geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
+  labs(title = "Fuzzy ELSA: Ecological Attributes") +
+  scale_fill_gradient2(
+    low = "white", 
+    mid = "lightgrey", 
+    high = "blue4", 
+    midpoint = median(felsa_eco_df$mean_forprod_fia)
+  ) +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        legend.position = "none",
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+ggsave(here::here(paste0("figures/felsa_eco_nf_", Sys.Date(), ".png")), 
+       felsa_eco_nf_map, height = 5, width = 7, dpi = 300)
+#felsa_eco_nf_map
+
 
 
 
