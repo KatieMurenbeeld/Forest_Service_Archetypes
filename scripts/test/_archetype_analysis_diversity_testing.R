@@ -1,16 +1,20 @@
 library(tidyverse)
 library(terra)
 library(sf)
+library(raster)
 library(ggplot2)
 library(exactextractr)
 library(tigris)
 library(gganimate)
 library(gifski)
+library(exactextractr)
 
 # 3 things to do in this script
 ## 1 Need to calculate Shannon Diversity by Region
 ## 2 Sensitivity Analysis of buffer distances
 ## 3 Test different ways to calculate diversity 
+## 4 Test out what different levels of mixing does for Shannon H 
+### (create a sample raster and evenly assign the value of 8 clusters)
 
 
 # Load the data
@@ -44,7 +48,7 @@ fs_reg.crop <- st_crop(fs_reg.proj, ext(sgfcm_pmrc_poli_attri))
 reg4 <- fs_reg.crop %>%
   filter(REGION == "04")
 
-library(exactextractr)
+
 
 test_v <- reg4
 test_z <- crop(sgfmc_pmrc_poli_result, test_v, mask = TRUE)
@@ -221,7 +225,8 @@ write_csv(all_shan_h, paste0(here::here("data/processed/"), "all_shan_div_dist10
 # join to sf!
 shan_h_sf <- function(shan_h){
   shan_h_sf <- shan_h %>%
-    left_join(fs_nf.crop, by = "FORESTORGC")
+  left_join(fs_nf.crop, by = "FORESTORGC")
+  
   shan_h_sf <- st_as_sf(shan_h_sf)
   return(shan_h_sf)
 }
@@ -240,8 +245,8 @@ shan_h_sf_100 <- shan_h_sf(shan_h_100)
 all_shan_h_sf <- rbind(shan_h_sf_10, shan_h_sf_20, shan_h_sf_30, shan_h_sf_40, 
                        shan_h_sf_50, shan_h_sf_60, shan_h_sf_70, shan_h_sf_80, 
                        shan_h_sf_90, shan_h_sf_100)
-#write_sf(obj = all_shan_h_sf, dsn = paste0(here::here("data/processed/"), "all_shan_div_dist10-100_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
-all_shan_h_sf <- read_sf(here::here("data/processed/all_shan_div_dist10-100_2024-08-26.shp"))
+write_sf(obj = all_shan_h_sf, dsn = paste0(here::here("data/processed/"), "all_shan_div_dist10-100_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+#all_shan_h_sf <- read_sf(here::here("data/processed/all_shan_div_dist10-100_2024-08-26.shp"))
 
 # Create an animated map?
 # create the list of CONUS states 
@@ -284,17 +289,162 @@ animate(map_with_animation, duration = 10, fps = 1, renderer = gifski_renderer()
 anim_save(here::here("figures/output.gif"))
 #----------
 # scatter/line plot with shan_div by distance for each forest?
-all_shan_h2 <- read_csv(here::here("data/processed/all_shan_div_dist10-100_2024-08-26.csv"))
-dist_shan_sens <- all_shan_h2 %>%
+#all_shan_h <- read_csv(here::here("data/processed/all_shan_div_dist10-100_2024-08-26.csv"))
+dist_shan_sens <- all_shan_h %>%
+  filter(shan_div > 1.5) %>%
   ggplot(aes(x=distance, y=shan_div, group=FORESTORGC, color=FORESTORGC)) +
   geom_line() + 
   scale_x_continuous(breaks = seq(10, 110, by = 10)) +
   theme_bw() +
-  theme(legend.position="none")
+  theme(legend.position="bottom")
 dist_shan_sens
 ggsave(here::here("figures/dist_shan_sens_2024-08-26.png"), dist_shan_sens, 
        width = 6, height = 4, dpi = 300)
 
+## 3. Calculate diversity - do not mask forests
+
+# define a function
+
+test_buffers <- function(area_with_nf, dist_m){
+  nf_buffs <- data.frame()
+  for (nf in 1:109) {
+    #print(reg4_nf$FORESTORGC[nf])
+    tmp_nf <- area_with_nf %>%
+      filter(FORESTORGC == area_with_nf$FORESTORGC[nf])
+    tmp_nf_buf <- st_buffer(tmp_nf, dist = dist_m)
+    nf_buffs <- rbind(nf_buffs, tmp_nf_buf)
+  }
+  return(nf_buffs)
+}
+
+# test for forests in Region 4
+nf_r4 <- fs_nf.crop %>%
+  filter(REGION == "04")
+
+reg4_buffs <- test_buffers(nf_r4, 50000)
+reg4_buffs_crop <- st_crop(reg4_buffs, st_bbox(reg4))
+reg4_buffs_int <- st_intersection(reg4_buffs, reg4)
+
+# Calculate the shannon diversity for each forest
+test_v <- reg4_buffs_int
+test_z <- crop(sgfmc_pmrc_poli_result, test_v, mask = TRUE)
+
+test_x <- exact_extract(test_z, test_v, coverage_area = TRUE)
+names(test_x) <- test_v$FORESTORGC
+
+test <- bind_rows(test_x, .id = "FORESTORGC") %>%
+  group_by(FORESTORGC, value) %>%
+  #group_by(value) %>%
+  summarize(total_area = sum(coverage_area)) %>%
+  group_by(FORESTORGC) %>%
+  mutate(proportion = total_area/sum(total_area))
+
+test <- test %>% 
+  replace_na(list(value = 0))
+
+test_shan <- test %>%
+  dplyr::select(FORESTORGC, proportion) %>%
+  #select(proportion) %>%
+  group_by(FORESTORGC) %>%
+  summarise(shan_div = -sum(proportion * log(proportion)))
+
+# join to sf!
+test_shan_sf <- test_shan %>%
+  left_join(nf_r4, by = "FORESTORGC")
+
+test_shan_sf <- st_as_sf(test_shan_sf)
+
+# generate map
+test_shan_nf_reg4 <- ggplot() +
+  geom_sf(data = reg4, fill = NA, color = "black") +
+  geom_sf(data = test_shan_sf, aes(fill = shan_div)) +
+  geom_sf(data = reg4_buffs_int, fill = NA, color = "black") + 
+  labs(title = "Region 4 NFs: Shannon Diversity of Archetypes") +
+  theme_bw() + 
+  theme(text = element_text(size = 20),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+test_shan_nf_reg4  
+
+# That works and would be the new way to do Shannon Diversity if we choose this method moving forward. 
+
+## 4. Playing with a sample raster and shape for Shannon 
+#r <- raster(ncol=10, nrow=8)
+r <- raster(ncol = 1, nrow = 8)
+ncell(r)
+
+#values(r) <- sample(1:8, 80, replace = T, prob = c(0.125, 0.125, 0.125, 0.125, 
+#                                                   0.125, 0.125, 0.125, 0.125))
+# even distribution = 2.04
+
+#values(r) <- sample(1:8, 80, replace = T, prob = c(0.005, 0.15, 0.005, 0.005, 
+#                                                   0.685, 0.1, 0.245, 0.125))
+# uneven distribution = 1.07
+
+#values(r) <- 5
+# only 1 cluster = 0
+
+# raster with only 8 cells
+values(r) <- sample(1:8, 8, replace = F)
+# evenly distributed = 1.95
+
+plot(r)
+
+e <- extent(r)
+# coerce to a SpatialPolygons object
+p_ext <- as(e, 'SpatialPolygons') 
+p <- st_as_sf(p_ext)
+
+test_v <- p %>% st_cast("MULTIPOLYGON")
+test_z <- crop(r, test_v, mask = TRUE)
+
+test_x <- exact_extract(test_z, test_v, coverage_area = TRUE)
+names(test_x) <- "cluster"
+
+test_areas <- bind_rows(test_x, .id = "cluster") %>%
+  group_by(cluster, value) %>%
+  summarize(total_arch_area = sum(coverage_area)) %>%
+  group_by(cluster) %>%
+  mutate(proportion_pct = round((total_arch_area/sum(total_arch_area))*100, 2)) %>%
+  mutate(proportion = (total_arch_area/sum(total_arch_area)))
+
+test_shan_h <- test_areas %>%
+  dplyr::select(cluster, proportion) %>%
+  group_by(cluster) %>%
+  summarise(shan_div = -sum(proportion * log(proportion)))
+test_shan_h
 
 
+# so for something with 8 clusters or objects the Shannon diversity can range from
+# 0 (only 1 cluster) to approximately 2 for evenly distributed clusters
 
+
+## moving forward do not mask out the NFs
+## plot the buffers with a scale bar in one area, make sure it makes sense
+## what happens at the border of CONUS?
+
+# Test for region 4
+# but for a specific forest first
+reg4_nf <- fs_nf.crop %>%
+  filter(REGIO)
+  
+  
+  
+test_nf <- fs_nf.crop %>%
+  filter(FORESTORGC == "0413")
+test_nf_buf <- st_buffer(test_nf, dist = 50000)
+plot(test_nf_buf$geometry)
+plot(test_nf$geometry, add = TRUE, color = "blue")
+
+test_nf_buffers <- function(area_with_nf, dist_m){
+  nf_buffs <- data.frame()
+  for (nf in 1:109) {
+    #print(reg4_nf$FORESTORGC[nf])
+    tmp_nf <- area_with_nf %>%
+      filter(FORESTORGC == area_with_nf$FORESTORGC[nf])
+    tmp_nf_buf <- st_buffer(tmp_nf, dist = dist_m)
+    nf_buffs <- rbind(nf_buffs, tmp_nf_int)
+  }
+  return(nf_buffs)
+}
