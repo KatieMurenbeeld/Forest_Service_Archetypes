@@ -69,8 +69,8 @@ FCMvalues <- select_parameters.mc(algo = "FCM", data = dataset_soc_sc,
                                   indices = c("XieBeni.index", "Explained.inertia",
                                               "Negentropy.index", "Silhouette.index"),
                                   seed = 6891, verbose = TRUE)
-write_csv(FCMvalues, here::here(paste0("outputs/fcm_soc-attri_params_", Sys.Date(), ".csv")), append = FALSE)
-
+#write_csv(FCMvalues, here::here(paste0("outputs/fcm_soc-attri_params_", Sys.Date(), ".csv")), append = FALSE)
+FCMvalues <- read_csv(here::here("outputs/fcm_soc-attri_params_2024-09-03.csv"))
 knitr::kable(FCMvalues[c("k","m","Silhouette.index","XieBeni.index")],
              col.names = c("k","m","silhouette index",
                            "Xie and Beni index"),digits = 3)
@@ -220,23 +220,48 @@ ggplot(SGFCMalphabeta) +
 
 ## Based on the parameter optimization run the final SGFCM for the soc attributes
 ### k = 3, m = 1.3, window = 5x5, alpha = 0.5, beta = 0.3 sil.idx = 0.30
-### k = 3, m = 1.8. window = 3x3, alpha = , beta = , sil.idx = 0.
-SGFCM_result <- SGFCMeans(dataset_eco_sc, k = , m = , standardize = FALSE,
+### k = 3, m = 1.8, window = 3x3, alpha = 0.1, beta = 0.8, sil.idx = 0.31
+SGFCM_result <- SGFCMeans(dataset_soc_sc, k = 3, m = 1.8, standardize = FALSE,
                           lag_method = "mean",
-                          window = , alpha = , beta = ,
+                          window = w1, alpha = 0.1, beta = 0.8,
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
 #saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_soc_", Sys.Date(), ".rds")))
 
 map_SGFCM_result <- rast(SGFCM_result$rasters)
 plot(map_SGFCM_result[["Groups"]])
-#writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_soc_", Sys.Date(), ".tif"))
+writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_soc_", Sys.Date(), ".tif"))
 
 maps_sgfcm <- mapClusters(object = SGFCM_result, undecided = 0.2)
 
 # Fuzzy ELSA
 fuzzy_elsa_rast <- calcFuzzyELSA(SGFCM_result, window = matrix(1,nrow = 3, ncol = 3))
 
-cols <- RColorBrewer::brewer.pal(n = 3, "Blues")
+cols <- RColorBrewer::brewer.pal(n = 7, "Blues")
 vals <- terra::values(fuzzy_elsa_rast, mat = FALSE)
-limits <- classIntervals(vals[!is.na(vals)],  n = 3, style = "kmeans") 
+limits <- classIntervals(vals[!is.na(vals)],  n = 7, style = "kmeans") 
 plot(fuzzy_elsa_rast, col = cols, breaks = limits$brks)
+
+#writeRaster(fuzzy_elsa_rast, here::here(paste0("data/processed/SGFCM_soc_felsa_", 
+#                                               Sys.Date(), ".tif")))
+fuzzy_elsa_soc <- rast(here::here("data/processed/SGFCM_soc_felsa_2024-09-04.tif"))
+
+# Map with the USFS boundaries
+# Load the data
+fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
+fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
+projection <- "epsg: 5070"
+
+fs_nf.proj <- fs_nf %>% 
+  filter(REGION != "10") %>%
+  st_transform(., crs=projection)
+fs_nf.crop <- st_crop(fs_nf.proj, ext(rst_fcm_pmrc_poli_sc))
+fs_reg.proj <- fs_reg %>% 
+  filter(REGION != "10") %>%
+  st_transform(., crs=projection)
+fs_reg.crop <- st_crop(fs_reg.proj, ext(rst_fcm_pmrc_poli_sc))
+
+#plot(fuzzy_elsa_rast, col = cols, breaks = limits$brks)
+#plot(fs_nf.crop$geometry, add = TRUE)
+
+
+
