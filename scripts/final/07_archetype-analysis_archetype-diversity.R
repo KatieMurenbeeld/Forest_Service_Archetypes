@@ -373,4 +373,6 @@ test_days <- pals_edays_shanh %>%
 test_days
 
 
-
+summarizeClusters(df_all,
+                  belongmatrix = SGFCM_result$Belongings,
+                  weighted = TRUE, dec = 3)
