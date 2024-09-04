@@ -218,7 +218,7 @@ mean_felsa_eco_nf <- ggplot() +
   #geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.75) +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
   geom_sf(data = felsa_sf, aes(fill = felsa_eco, color = NULL)) +
-  labs(title = "Fuzzy ELSA of SE Archetypes",
+  labs(title = "Fuzzy ELSA of Eco Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
   theme(text = element_text(size = 16),
@@ -235,7 +235,7 @@ mean_felsa_soc_nf <- ggplot() +
   #geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.75) +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
   geom_sf(data = felsa_sf, aes(fill = felsa_soc, color = NULL)) +
-  labs(title = "Fuzzy ELSA of SE Archetypes",
+  labs(title = "Fuzzy ELSA of Social Archetypes",
        subtitle = "Calculated from 50km buffer around National Forests") +
   theme_bw() + 
   theme(text = element_text(size = 16),
