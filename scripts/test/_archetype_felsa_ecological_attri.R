@@ -204,8 +204,8 @@ dict <- data.frame(
 )
 
 SGFCMalphabeta$window <- dict$window[match(SGFCMalphabeta$window,dict$w)]
-write_csv(SGFCMalphabeta, here::here(paste0("outputs/sgfcm_eco-attri_params-alphabeta_", Sys.Date(), ".csv")), append = FALSE)
-
+#write_csv(SGFCMalphabeta, here::here(paste0("outputs/sgfcm_eco-attri_params-alphabeta_", Sys.Date(), ".csv")), append = FALSE)
+SGFCMalphabeta <- read_csv(here::here("outputs/sgfcm_eco-attri_params-alphabeta_2024-09-03.csv"))
 # showing the silhouette index
 ggplot(SGFCMalphabeta) + 
   geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index)) + 
@@ -220,10 +220,10 @@ ggplot(SGFCMalphabeta) +
   coord_fixed(ratio=0.5)
 
 ## Based on the parameter optimization run the final SGFCM for the eco attributes
-### k = 3, m = 2.0, window = 3x3, alpha = 0.6, beta = 0.1 (or 0)
+### k = 3, m = 2.0, window = 3x3, alpha = 1.9, beta = 0.1 (sil.idx = 0.63)
 SGFCM_result <- SGFCMeans(dataset_eco_sc, k = 3, m = 2.0, standardize = FALSE,
                           lag_method = "mean",
-                          window = w1, alpha = 0.6, beta = 0.1,
+                          window = w1, alpha = 1.9, beta = 0.1,
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
 saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_eco_", Sys.Date(), ".rds")))
 
