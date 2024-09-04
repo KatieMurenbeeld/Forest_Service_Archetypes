@@ -217,11 +217,12 @@ SGFCM_result <- SGFCMeans(dataset_pmrc_poli, k = 8, m = 1.6, standardize = FALSE
                           lag_method = "mean",
                           window = w1, alpha = 1.3, beta = 0.1,
                           seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
-saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".rds")))
+#saveRDS(SGFCM_result, here::here(paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".rds")))
+#SGFCM_result <- readRDS(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.rds"))
 
 map_SGFCM_result <- rast(SGFCM_result$rasters)
 plot(map_SGFCM_result[["Groups"]])
-writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".tif"))
+#writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_pmrc_poli_", Sys.Date(), ".tif"))
 
 maps_sgfcm <- mapClusters(object = SGFCM_result, undecided = 0.2)
 
