@@ -243,5 +243,24 @@ vals <- terra::values(fuzzy_elsa_rast, mat = FALSE)
 limits <- classIntervals(vals[!is.na(vals)],  n = 7, style = "kmeans") 
 plot(fuzzy_elsa_rast, col = cols, breaks = limits$brks)
 
-writeRaster(fuzzy_elsa_rast, here::here(paste0("data/processed/SGFCM_eco_felsa_", 
-                                               Sys.Date(), ".tif")))
+#writeRaster(fuzzy_elsa_rast, here::here(paste0("data/processed/SGFCM_eco_felsa_", 
+#                                               Sys.Date(), ".tif")))
+fuzzy_elsa_eco <- rast(here::here("data/processed/SGFCM_eco_felsa_2024-09-03.tif"))
+
+# Map with the USFS boundaries
+# Load the data
+fs_nf <- st_read("data/original/S_USA.AdministrativeForest.shp")
+fs_reg <- st_read("data/original/S_USA.AdministrativeRegion.shp")
+projection <- "epsg: 5070"
+
+fs_nf.proj <- fs_nf %>% 
+  filter(REGION != "10") %>%
+  st_transform(., crs=projection)
+fs_nf.crop <- st_crop(fs_nf.proj, ext(rst_fcm_pmrc_poli_sc))
+fs_reg.proj <- fs_reg %>% 
+  filter(REGION != "10") %>%
+  st_transform(., crs=projection)
+fs_reg.crop <- st_crop(fs_reg.proj, ext(rst_fcm_pmrc_poli_sc))
+
+#plot(fuzzy_elsa_rast, col = cols, breaks = limits$brks)
+#plot(fs_nf.crop$geometry, add = TRUE)
