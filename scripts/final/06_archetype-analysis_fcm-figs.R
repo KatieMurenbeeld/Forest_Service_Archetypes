@@ -34,7 +34,7 @@ fcm_pmrc_poli <- readRDS("data/processed/FCM_pmrc_poli_2024-08-12.rds")
 sgfcm_pmrc_poli_attri_sc <- rast(here::here("data/processed/rst_fcm_pmrc_poli_sc_2024-08-12.tif"))
 sgfcm_pmrc_poli_attri <- rast(here::here("data/processed/rast_fcm_pmrc2024_ploi_2024-08-12.tif"))
 sgfmc_pmrc_poli_result <- rast(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.tif"))
-sgfcm_pmrc_poli <- rast(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.rds"))
+sgfcm_pmrc_poli <- readRDS(here::here("data/processed/SGFCM_result_pmrc_poli_2024-08-26.rds"))
 
 fcm_poli_nogs_attri <- rast("data/processed/rast_fcm_poli_nogs_2024-07-22.tif")
 fcm_poli_nogs_result_01 <- rast("data/processed/FCM_poli_nogs_01_2024-07-22.tif")
@@ -212,20 +212,21 @@ sgfcm.df <- sgfmc_pmrc_poli_result$Groups %>% as.data.frame(xy = TRUE)
 
 sgfcm_rg_nf_map <- ggplot() +
   geom_raster(aes(x = sgfcm.df$x, y = sgfcm.df$y, fill = as.factor(sgfcm.df$Groups))) +
-  geom_sf(data = fs_nf.proj, fill = NA, color = "black") +
+  geom_sf(data = fs_nf.crop, fill = NA, color = "black") +
   geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1.1) +
   scale_fill_brewer(palette = "Set3") +
   labs(title = "All Attributes: k=8, m=1.6, beta = 0.1, alpha = 1.3", 
        fill = "Archetypes") +
   theme_bw() + 
-  theme(text = element_text(size = 20),
+  theme(text = element_text(size = 16),
         legend.position = "bottom",
         axis.title.x = element_blank(), 
         axis.title.y = element_blank(),
         plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
 
 sgfcm_rg_nf_map
-ggsave(paste0("~/Analysis/Archetype_Analysis/figures/sgfcm_reg_nf_map_", Sys.Date(), ".png"), plot = sgfcm_rg_nf_map, width = 12, height = 12, dpi = 300)  
+ggsave(paste0("~/Analysis/Archetype_Analysis/figures/sgfcm_reg_nf_map_", Sys.Date(), ".png"), 
+       plot = sgfcm_rg_nf_map, width = 7, height = 5, dpi = 300)  
 
 # PMRC attributes
 fcm.pmrc.df <- fcm_pmrc_result$Groups %>% as.data.frame(xy = TRUE)
