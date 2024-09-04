@@ -18,7 +18,7 @@ dataset_pmrc_poli <- lapply(names(rst_fcm_pmrc_poli_sc), function(n){
 })
 names(dataset_pmrc_poli) <- names(rst_fcm_pmrc_poli_sc)
 
-#---Run the FCMs standardize is set to FALSE because the data is scaled------
+#---Run the FCMs, standardize is set to FALSE because the data is scaled------
 FCM_result_pmrc_poli <- CMeans(dataset_pmrc_poli, k = 8, m = 1.625, standardize = FALSE, seed = 6891)
 saveRDS(FCM_result_pmrc_poli, here::here(paste0("data/processed/FCM_pmrc_poli_sc_", Sys.Date(), ".rds")))
 map.res.pmrc.poli <- rast(FCM_result_pmrc_poli$rasters)
