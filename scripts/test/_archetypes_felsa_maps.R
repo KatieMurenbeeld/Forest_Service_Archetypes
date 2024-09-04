@@ -194,6 +194,71 @@ ggsave(here::here(paste0("figures/felsa_eco_nf_", Sys.Date(), ".png")),
        felsa_eco_nf_map, height = 5, width = 7, dpi = 300)
 #felsa_eco_nf_map
 
+# Create maps or scatter plots of Fuzzy ELSA values
+
+## FELSA All
+mean_felsa_all_nf <- ggplot() +
+  #geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.75) +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = felsa_sf, aes(fill = felsa_all, color = NULL)) +
+  labs(title = "Fuzzy ELSA of SE Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 16),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+#mean_felsa_all_nf
+ggsave(here::here(paste0("figures/felsa_all_nf_mean_", Sys.Date(), ".png")),
+       plot = mean_felsa_all_nf, width = 7, height = 5, dpi = 300)  
+
+## FELSA Eco
+mean_felsa_eco_nf <- ggplot() +
+  #geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.75) +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = felsa_sf, aes(fill = felsa_eco, color = NULL)) +
+  labs(title = "Fuzzy ELSA of SE Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 16),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+#mean_felsa_all_nf
+ggsave(here::here(paste0("figures/felsa_eco_nf_mean_", Sys.Date(), ".png")),
+       plot = mean_felsa_eco_nf, width = 7, height = 5, dpi = 300)  
+
+## FELSA Soc
+mean_felsa_soc_nf <- ggplot() +
+  #geom_sf(data = fs_nf.crop, fill = NA, color = "black", linewidth = 0.75) +
+  geom_sf(data = fs_reg.crop, fill = NA, color = "black", linewidth = 1) +
+  geom_sf(data = felsa_sf, aes(fill = felsa_soc, color = NULL)) +
+  labs(title = "Fuzzy ELSA of SE Archetypes",
+       subtitle = "Calculated from 50km buffer around National Forests") +
+  theme_bw() + 
+  theme(text = element_text(size = 16),
+        axis.title.x = element_blank(), 
+        axis.title.y = element_blank(),
+        plot.margin=unit(c(0.5, 0.5, 0.5, 0.5),"mm"))
+
+#mean_felsa_all_nf
+ggsave(here::here(paste0("figures/felsa_soc_nf_mean_", Sys.Date(), ".png")),
+       plot = mean_felsa_soc_nf, width = 7, height = 5, dpi = 300)  
+
+
+# scatter plot
+test_scatter <- felsa_sf %>%
+  ggplot(aes(x=felsa_eco, y=felsa_soc, group=FORESTORGC, color=FORESTORGC)) +
+  geom_point() + 
+  #scale_x_continuous(breaks = seq(10, 110, by = 10)) +
+  theme_bw() +
+  theme(legend.position="none")
+test_scatter
+ggsave(here::here("figures/test_felsa_scatter_2024-09-04.png"), test_scatter, 
+       width = 6, height = 4, dpi = 300)
+
 
 
 
