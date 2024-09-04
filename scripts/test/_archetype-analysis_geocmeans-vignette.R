@@ -246,10 +246,12 @@ DFindices_SGFCM <- select_parameters.mc(algo = "SGFCM", data = dataset_pmrc_poli
                                        seed = 456, init = "kpp",
                                        indices = c("XieBeni.index", "Explained.inertia",
                                                    "Negentropy.index", "Silhouette.index"))
-write_csv(DFindices_SGFCM, here::here(paste0("outputs/sgfcm_pmrc_poli_indices_alpha_beta_", Sys.Date(), ".csv")), append = FALSE)
+#write_csv(DFindices_SGFCM, here::here(paste0("outputs/sgfcm_pmrc_poli_indices_alpha_beta_", Sys.Date(), ".csv")), append = FALSE)
+DFindices_SGFCM <- read_csv(here::here("outputs/sgfcm_pmrc_poli_indices_alpha_beta_2024-08-22.csv"))
 
 ggplot(DFindices_SGFCM) + 
-  geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index),  size = 5) + 
+  geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index)) + 
+  geom_text(aes(x = alpha, y = beta, label = round(Silhouette.index,2)), size = 2.0)+
   scale_fill_viridis() +
   coord_fixed(ratio=1)
 # alpha = 1.3 and beta = 0.1 look good. Could also try alpha of 1.6
