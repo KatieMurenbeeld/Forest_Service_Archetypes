@@ -149,8 +149,8 @@ ggplot(SFCMvalues) +
 # Spatial Generalized FCM 
 # beta only
 SGFCMbeta <- select_parameters.mc(algo = "SGFCM", data = dataset_soc_sc, 
-                                   k = 3, m = 1.3,
-                                   beta = seq(0.1,0.9,0.1), alpha = 1.0,
+                                   k = 3, m = 1.8,
+                                   beta = seq(0.1,0.9,0.1), alpha = 0.5,
                                    window = list(w1,w2,w3),
                                    spconsist = TRUE, nrep = 5, 
                                    verbose = TRUE, chunk_size = 4,
@@ -165,11 +165,11 @@ dict <- data.frame(
 SGFCMbeta$window <- dict$window[match(SGFCMbeta$window,dict$w)]
 # v1: k = 3, m = 1.3, alpha = 1.0  
 # v2: k = 3, m = 1.8, alpha = 0.5
-write_csv(SGFCMbeta, here::here(paste0("outputs/sgfcm_soc-attri_params-beta_v1_", Sys.Date(), ".csv")), append = FALSE)
+#write_csv(SGFCMbeta, here::here(paste0("outputs/sgfcm_soc-attri_params-beta_v1_", Sys.Date(), ".csv")), append = FALSE)
 write_csv(SGFCMbeta, here::here(paste0("outputs/sgfcm_soc-attri_params-beta_v2_", Sys.Date(), ".csv")), append = FALSE)
 
 # for v1: k = 3, m = 1.3, alpha = 1.0, window = 5x5, and beta = 0.4
-# for v2: k = 3, m = 1.8, alpha = 0.5, window = , and beta = 
+# for v2: k = 3, m = 1.8, alpha = 0.5, window = 3x3, and beta = 0.1
 # plot the silhouette and xie beni index
 ggplot(SGFCMbeta) + 
   geom_raster(aes(x = beta, y = window, fill = Silhouette.index)) + 
@@ -183,11 +183,12 @@ ggplot(SGFCMbeta) +
   scale_fill_viridis() +
   coord_fixed(ratio=0.125)
 
-
+# v1: k = 3, m = 1.3, window = 5x5
+# v2: k = 3, m = 1.8, window = 3x3
 # alpha and beta
 future::plan(future::multisession(workers=2))
 SGFCMalphabeta <- select_parameters.mc(algo = "SGFCM", data = dataset_soc_sc,
-                                       k = 3, m = 1.3, 
+                                       k = 3, m = 1.8, 
                                        beta = seq(0,1.0,0.1), alpha = seq(0,2,0.1),
                                        window = w1, spconsist = TRUE, nrep = 5, 
                                        verbose = TRUE, chunk_size = 4,
@@ -201,17 +202,25 @@ dict <- data.frame(
 )
 
 SGFCMalphabeta$window <- dict$window[match(SGFCMalphabeta$window,dict$w)]
-write_csv(SGFCMalphabeta, here::here(paste0("outputs/sgfcm_soc-attri_params-alphabeta_", Sys.Date(), ".csv")), append = FALSE)
+#write_csv(SGFCMalphabeta, here::here(paste0("outputs/sgfcm_soc-attri_params-alphabeta_v1_", Sys.Date(), ".csv")), append = FALSE)
+write_csv(SGFCMalphabeta, here::here(paste0("outputs/sgfcm_soc-attri_params-alphabeta_v2_", Sys.Date(), ".csv")), append = FALSE)
 
 # showing the silhouette index
 ggplot(SGFCMalphabeta) + 
   geom_raster(aes(x = alpha, y = beta, fill = Silhouette.index)) + 
-  geom_text(aes(x = alpha, y = beta, label = round(Silhouette.index,2)), size = 1.5)+
+  geom_text(aes(x = alpha, y = beta, label = round(Silhouette.index,2)), size = 2.0)+
   scale_fill_viridis() +
-  coord_fixed(ratio=0.125)
+  coord_fixed(ratio=0.5)
+
+ggplot(SGFCMalphabeta) + 
+  geom_raster(aes(x = alpha, y = beta, fill = XieBeni.index)) + 
+  geom_text(aes(x = alpha, y = beta, label = round(XieBeni.index,2)), size = 2.0)+
+  scale_fill_viridis() +
+  coord_fixed(ratio=0.5)
 
 ## Based on the parameter optimization run the final SGFCM for the soc attributes
-### k = , m = , window = , alpha = , beta = 
+### k = 3, m = 1.3, window = 5x5, alpha = 0.5, beta = 0.3 sil.idx = 0.30
+### k = 3, m = 1.8. window = 3x3, alpha = , beta = , sil.idx = 0.
 SGFCM_result <- SGFCMeans(dataset_eco_sc, k = , m = , standardize = FALSE,
                           lag_method = "mean",
                           window = , alpha = , beta = ,
