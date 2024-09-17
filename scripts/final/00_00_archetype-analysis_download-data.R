@@ -35,10 +35,11 @@ file_name <- "population_estimates_2022.csv"
 download_data(url, file_name)
 
 # Change in population (from Census)
-url <- "https://www2.census.gov/programs-surveys/popest/tables/2020-2023/counties/totals/co-est2023-comp.xlsx"
-file_name <- "census_2023_comp_est.xlsx"
+#url <- "https://www2.census.gov/programs-surveys/popest/tables/2020-2023/counties/totals/co-est2023-comp.xlsx"
+url <- "https://www2.census.gov/programs-surveys/popest/datasets/2020-2023/counties/totals/co-est2023-alldata.csv"
+file_name <- "census_2023_comp_est.csv"
 
-download_data(url_file_name)
+download_data(url, file_name)
 
 # Forest dependency 
 url <- "https://www.fs.usda.gov/rds/archive/products/RDS-2021-0077/RDS-2021-0077.zip"
