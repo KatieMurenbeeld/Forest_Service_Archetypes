@@ -9,7 +9,7 @@ library(readxl)
 ## Load the csv files
 forest_depend <- read_csv(paste0(here::here("data/original/Data/County-Forest_Dep_Comm_Capital.csv")))
 del_pop_ers <- read_csv(paste0(here::here("data/original/population_estimates_2022.csv")))
-#del_pop_cen <- read_excel(here::here("data/original/.xlsx"))
+del_pop_cen <- read_csv(here::here("data/original/census_2023_comp_est.csv"))
 econ_bea <- read.csv(paste0(here::here("data/original/CAINC6N__ALL_AREAS_2001_2022.csv")))
 bric <- read_excel(paste0(here::here("data/original/bric2020_us.xlsx")))
 elect_cntx <- read_csv(paste0(here::here("data/original/election_context_2018.csv")))
@@ -17,7 +17,7 @@ elect_cntx <- read_csv(paste0(here::here("data/original/election_context_2018.cs
 aip <- read_dta(here::here("data/original/aip_files/aip_counties_ideology_v2022a.dta"))
 
 ## Load county boundaries from tigris
-counties <- tigris::counties(year = 2020)
+#counties <- tigris::counties(year = 2020)
 ##Get Continental US list
 us.abbr <- unique(fips_codes$state)[1:51]
 us.name <- unique(fips_codes$state_name)[1:51]
@@ -27,38 +27,43 @@ us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
 colnames(us.states) <- c("state", "STATENAME", "FIPS")
 us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
-continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI",] #only CONUS
 
-counties <- tigris::counties(year = 2020) # need to set the year to account for changes to FIPS codes
-counties <- counties %>%
+counties_2020 <- tigris::counties(year = 2020) # need to set the year to account for changes to FIPS codes
+counties_2020 <- counties_2020 %>%
+  filter(STATEFP %in% continental.states$FIPS) %>%
+  dplyr::select(GEOID, geometry)
+
+counties_2023 <- tigris::counties(year = 2023) # need to set the year to account for changes to FIPS codes
+counties_2023 <- counties_2023 %>%
   filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, geometry)
 
 # Create one large table with FIPS codes and desired variables
 ## BRIC data
-bric_2020 <- bric %>%
+bric_2020 <- bric %>% # needs 2020 counties
   dplyr::select("GEOID", "COMM CAPITAL") %>%
   rename("FIPS" = "GEOID")
 
-## Change in Population, using census data
-delpop_cen <- del_pop_cen %>%
-  filter(Attribute == "") %>%
-  dplyr::select(FIPStxt, Value) %>%
-  rename("FIPS" = "FIPStxt", "" = "delpop_cen")
+## Net and ave change in population and % change in migration (rate?), using census data
+delpop_cen <- del_pop_cen %>% # needs 2023 counties
+  mutate(pct_mig = ((NPOPCHG2023 - NPOPCHG2020)/NPOPCHG2020) * 100,
+         ave_del_pop = ((NPOPCHG2020 + NPOPCHG2021 + NPOPCHG2022 + NPOPCHG2023)/4)) %>%
+  dplyr::select(STATE, COUNTY, NPOPCHG2023, NETMIG2022, ave_del_pop, pct_mig)
 
 ## Change in Population, using USDS-ERS data
 delpop_ers <- del_pop_ers %>%
-  filter(Attribute == "R_NET_MIG_2021") %>%
+  filter(Attribute == "NET_MIG_2022") %>%
   dplyr::select(FIPStxt, Value) %>%
-  rename("FIPS" = "FIPStxt", "R_NET_M" = "Value")
+  rename("FIPS" = "FIPStxt", "NET_MIG" = "Value")
 
 ## Forest Dependence Variables
-fordep <- forest_depend %>%
+fordep <- forest_depend %>% # needs 2020 counties
   dplyr::select(fips, pct.pay) %>%
   rename("FIPS" = "fips", "pct_forpay" = "pct.pay")
 
 ## Economic Data
-econ_bea$Description <- trimws(econ_bea$Description)
+econ_bea$Description <- trimws(econ_bea$Description) # needs 2022 counties
 econ_bea$X2022 <- as.numeric(econ_bea$X2022)
 linecodes <- as.character(c(1, 100, 200))
 
@@ -108,7 +113,7 @@ elect <- elect_cntx %>% #need to ignore NAs when calculating things
   rename("FIPS" = "fips")
 
 ## American Ideology Data
-aip_mrp <- aip %>%
+aip_mrp <- aip %>% # needs 2020 counties
   filter(survey_period == "2017-2021") %>%
   dplyr::select(county_fips, mrp_ideology, mrp_ideology_se, demshare_pres) %>%
   rename("FIPS" = "county_fips")
@@ -120,8 +125,15 @@ update_fips <- function(data_set) {
   return(data_set)
 }
 
+### For the Census data need to combine the State and County FIPS
+delpop_cen <- delpop_cen %>%
+  mutate(STATE = as.character(STATE), 
+         COUNTY = as.character(COUNTY)) %>%
+  mutate(FIPS = paste(STATE, COUNTY, sep = ""))
+
 fordep_fips <- update_fips(fordep)
-delpop_fips <- update_fips(delpop_ers)
+delpop_ers_fips <- update_fips(delpop_ers)
+delpop_cen_fips <- update_fips(delpop_cen)
 econcomp_fips <- update_fips(econ_comp) # need to adjust column names
 econcomp_fips <- econcomp_fips %>%
   mutate(FIPS = trimws(as.character(FIPS)))
@@ -129,17 +141,20 @@ bric_2020_fips <- update_fips(bric_2020)
 elect_cntxt_fips <- update_fips(elect)
 aip_mrp_fips <- update_fips(aip_mrp)
 
-all_vars <- plyr::join_all(list(fordep_fips, delpop_fips, econcomp_fips, 
-                                bric_2020_fips, elect_cntxt_fips, aip_mrp_fips),
-                     by='FIPS', 
-                     type='left')
+all_vars <- full_join(aip_mrp_fips, bric_2020_fips, by = "FIPS")
+all_vars <- full_join(all_vars, fordep_fips, by = "FIPS")
 
 # Join to counties
 
-var_bdry <- left_join(all_vars, counties,
-                    by = c("FIPS" = "GEOID"))
+var_bdry <- left_join(counties_2020, all_vars,
+                    by = c("GEOID" = "FIPS"))
 
 var_bdry <- st_as_sf(var_bdry)
+
+# Join the delpop_cen to the counties_2023
+delpop_bdry <- left_join(counties_2023, delpop_cen_fips,
+                         by = c("GEOID" = "FIPS"))
+delpop_bdry <- st_as_sf(delpop_bdry)
 
 # Join the AIP data only
 aip_bdry <- left_join(aip_mrp_fips, counties, 
@@ -149,17 +164,31 @@ aip_bdry <- st_as_sf(aip_bdry)
 
 ## Check and fix validity
 all(st_is_valid(var_bdry))
+all(st_is_valid(delpop_bdry))
 all(st_is_valid(aip_bdry))
 ## Check for empty geometries and invalid or corrupt geometries 
 any(st_is_empty(var_bdry))
-var_bdry_noempty <- var_bdry[!st_is_empty(var_bdry),]
-any(st_is_empty(var_bdry_noempty))
-any(is.na(st_is_valid(var_bdry_noempty)))
-#any(na.omit(st_is_valid(var_bdry_noempty)) == FALSE)
-st_is_longlat(var_bdry_noempty)
+any(st_is_empty(delpop_bdry))
+
+index <- st_touches(var_bdry, var_bdry)
+
+var_bdry_fill <- var_bdry %>% 
+  mutate(pct_pay_fill = ifelse(is.na(pct_forpay),
+                               apply(index, 1, function(i){mean(.$pct_forpay[i], na.rm = TRUE)}),
+                               pct_forpay),
+         mrp_ideology_fill = ifelse(is.na(mrp_ideology),
+                               apply(index, 1, function(i){mean(.$mrp_ideology[i], na.rm = TRUE)}),
+                               mrp_ideology)
+  )
+
+any(st_is_empty(var_bdry_fill))
+st_is_longlat(var_bdry_fill)
 
 ## Save the validated shapefile
-write_sf(obj = var_bdry, dsn = paste0(here::here("data/processed/"), "all_vars_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+write_sf(obj = var_bdry_fill, dsn = paste0(here::here("data/processed/"), "vars_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+print("new shapefile written")
+write_sf(obj = delpop_bdry, dsn = paste0(here::here("data/processed/"), "delpop_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+print("new shapefile written")
+write_sf(obj = aip_bdry, dsn = paste0(here::here("data/processed/"), "aip_vars_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
-write_sf(obj = aip_bdry, dsn = paste0(here::here("data/processed/"), "aip_vars_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
