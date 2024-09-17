@@ -15,15 +15,15 @@ ref_rast_proj <- project(ref_rast, projection)
 cejst_proj <- cejst %>% st_transform(., crs = projection)
 
 #----Filter non-CONUS entities and select variables----
-#cejst_proj <- cejst_proj %>%
-#  filter(SF != c("Hawaii", "Alaska", "Puerto Rico",
-#                 "Northern Mariana Islands", "Guam", "American Samoa"))
+cejst_proj <- cejst_proj %>%
+  filter(SF != c("Hawaii", "Alaska", "Puerto Rico",
+                 "Northern Mariana Islands", "Guam", "American Samoa"))
 
 ## test with Washington first
-cejst_wa <- cejst_proj %>%
-  filter(SF == "Washington")
+#cejst_proj <- cejst_proj %>%
+#  filter(SF == "Washington")
 
-cejst_proj_sel <- cejst_wa %>%
+cejst_proj_sel <- cejst_proj %>%
   select(HSEF, HBF_PFS, EBF_PFS, PM25F_PFS)
 
 all(st_is_valid(cejst_proj_sel))
@@ -37,7 +37,7 @@ which(is.na(cejst_proj_sel$HSEF))
 #---Fill in data for the CEJST dataset----
 
 # create an index of the polygons that touch
-wa_index <- st_touches(cejst_proj_sel, cejst_proj_sel)
+index <- st_touches(cejst_proj_sel, cejst_proj_sel)
 
 cejst_proj_fill <- cejst_proj_sel %>%
   mutate(HSEF_fill = ifelse(is.na(HSEF),
@@ -54,27 +54,23 @@ cejst_proj_fill <- cejst_proj_sel %>%
                                  PM25F_PFS)
   )
 
-ggplot(data = cejst_proj_fill) + 
-  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
-
 cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
 
-ggplot(data = cejst_proj_fill_noemp) + 
-  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
+print(paste("Geometries are valid? ", all(st_is_valid(cejst_proj_fill))))
+#print(paste("There are empty geometries? ", any(st_is_empty(cejst_proj_fill))))
 
-which(is.na(cejst_proj_fill$HSEF_fill))
-which(is.na(cejst_proj_fill_noemp))
+#cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
+print(paste("There are empty geometries? ", any(st_is_empty(cejst_proj_fill_noemp))))
+
+#----Save the filled in shapefile----
+write_sf(obj = cejst_proj_fill_noemp, dsn = paste0(here::here("data/processed/"), "cejst_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+print("new shapefile written")
 
 
-wa_na <- cejst_proj_sel %>%
-  filter(is.na(HSEF))
+#ggplot(data = cejst_proj_fill) + 
+#  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
 
-ggplot(data = wa_na) + 
-  geom_sf(aes(fill = HSEF, color = HSEF))
+#cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
 
-wa_fill_na <- cejst_proj_fill %>%
-  filter(is.na(HSEF_fill))
-
-ggplot(data = wa_fill_na) + 
-  geom_sf()
-
+#ggplot(data = cejst_proj_fill_noemp) + 
+#  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
