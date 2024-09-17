@@ -57,20 +57,8 @@ cejst_proj_fill <- cejst_proj_sel %>%
 cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
 
 print(paste("Geometries are valid? ", all(st_is_valid(cejst_proj_fill))))
-#print(paste("There are empty geometries? ", any(st_is_empty(cejst_proj_fill))))
-
-#cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
 print(paste("There are empty geometries? ", any(st_is_empty(cejst_proj_fill_noemp))))
 
 #----Save the filled in shapefile----
 write_sf(obj = cejst_proj_fill_noemp, dsn = paste0(here::here("data/processed/"), "cejst_to_rst_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
-
-
-#ggplot(data = cejst_proj_fill) + 
-#  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
-
-#cejst_proj_fill_noemp <- cejst_proj_fill %>% filter(!st_is_empty(.))
-
-#ggplot(data = cejst_proj_fill_noemp) + 
-#  geom_sf(aes(fill = HSEF_fill, color = HSEF_fill))
