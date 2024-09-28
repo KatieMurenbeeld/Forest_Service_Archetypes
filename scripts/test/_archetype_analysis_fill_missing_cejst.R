@@ -1,3 +1,7 @@
+## Note: This script, the original/usa.shp and the merged/conus_whp_* 
+## were uploaded and run on Borah with minor changes to the code
+## in the form of updates to the file path.
+
 library(sf)
 library(terra)
 library(tidyverse)
