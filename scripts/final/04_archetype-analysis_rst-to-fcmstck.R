@@ -22,7 +22,7 @@ fed_rich <- rast(here::here("data/processed/conus_fed_rich_2024-06-12.tif"))
 fed_pct_area <- rast(here::here("data/processed/conus_fed_pctarea_2024-06-20.tif"))
 #forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
 ## Load in previous raster stack (no areafed, no fedrich, no privfor)
-rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_fill_2024-08-12.tif"))
+rast_stack_no <- rast(here::here("data/processed/rast_stack_attributes_fill_2024-09-18.tif"))
 
 # reproject whp_rast which will be used as the reference raster
 
@@ -39,18 +39,18 @@ resamp <- function(raster, ref_raster, method){
 
 fed_rich[is.na(fed_rich)] <- 0
 fed_rich_resamp <- resamp(fed_rich, whp_rast_proj, "near")
-fed_rich_crop <- crop(fed_rich_resamp, rast_stack_no$pct_pay_fill, mask = TRUE)
+fed_rich_crop <- crop(fed_rich_resamp, rast_stack_no$pct_py_, mask = TRUE)
 
 fed_pct_area[is.na(fed_pct_area)] <- 0
 fed_pct_area_resamp <- resamp(fed_pct_area, whp_rast_proj, "near")
-fed_pct_area_crop <- crop(fed_pct_area_resamp, rast_stack_no$pct_pay_fill, mask = TRUE)
+fed_pct_area_crop <- crop(fed_pct_area_resamp, rast_stack_no$pct_py_, mask = TRUE)
 
 ## Stack on the final attributes
 rast_stack <- c(rast_stack_no, fed_rich_crop, fed_pct_area_crop)
 
 stand_age <- rast_stack$conus_age06_1km
 stand_age[is.na(stand_age)] <- 0 
-stand_age_crop <- crop(stand_age, rast_stack$pct_pay_fill, mask = TRUE)
+stand_age_crop <- crop(stand_age, rast_stack$pct_py_, mask = TRUE)
 names(stand_age_crop)
 names(stand_age_crop) <- "stand_age"
 rast_stack_treeage <- c(rast_stack, stand_age_crop)
@@ -58,6 +58,20 @@ rast_stack_treeage <- c(rast_stack, stand_age_crop)
 ## Remove any "conus_age06_1km"
 
 rast_stack_final <- subset(rast_stack_treeage, "conus_age06_1km", negate = TRUE)
+
+XMIN <- ext(ref_rast_proj)$xmin
+XMAX <- ext(ref_rast_proj)$xmax
+YMIN <- ext(ref_rast_proj)$ymin
+YMAX <- ext(ref_rast_proj)$ymax
+aspectRatio <- (YMAX-YMIN)/(XMAX-XMIN)
+cellSize <- 3000
+NCOLS <- as.integer((XMAX-XMIN)/cellSize)
+NROWS <- as.integer(NCOLS * aspectRatio)
+templateRas <- rast(ncol=NCOLS, nrow=NROWS, 
+                    xmin=XMIN, xmax=XMAX, ymin=YMIN, ymax=YMAX,
+                    vals=1, crs=crs(ref_rast_proj))
+
+rst_stk_resample_test <- resample(rast_stack_final, templateRas, "bilinear", threads = TRUE) 
 
 ##---I don't think I need to do this focal anymore----
 # I think I may want to run a focal on all layers to get rid of more NAs? make sure to rename columns
