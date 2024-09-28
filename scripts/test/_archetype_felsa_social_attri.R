@@ -263,5 +263,22 @@ fs_reg.crop <- st_crop(fs_reg.proj, ext(rst_fcm_pmrc_poli_sc))
 #plot(fuzzy_elsa_rast, col = cols, breaks = limits$brks)
 #plot(fs_nf.crop$geometry, add = TRUE)
 
+#----Use the same parameters as the archetype SGFCM----
 
+# Set the window size
+w1 <- matrix(1, nrow = 3, ncol = 3)
 
+# Create the clusters
+SGFCM_soc_result <- SGFCMeans(dataset_soc_sc, k = 8, m = 1.6, standardize = FALSE,
+                          lag_method = "mean",
+                          window = w1, alpha = 1.3, beta = 0.1,
+                          seed = 6891, tol = 0.001, verbose = FALSE, init = "kpp")
+
+map_SGFCM_result <- rast(SGFCM_soc_result$rasters)
+plot(map_SGFCM_result[["Groups"]])
+writeRaster(map_SGFCM_result[["Groups"]], filename = paste0("data/processed/SGFCM_result_soc_all_params_", Sys.Date(), ".tif"))
+
+fuzzy_elsa_rast <- calcFuzzyELSA(SGFCM_soc_result, window = matrix(1,nrow = 3, ncol = 3))
+
+writeRaster(fuzzy_elsa_rast, here::here(paste0("data/processed/SGFCM_soc_felsa_k8_", 
+                                               Sys.Date(), ".tif")))
