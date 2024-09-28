@@ -19,7 +19,7 @@ projection <- "epsg:5070"
 #---Load the data-----
 whp_rast <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
 forgain_rast <- rast(here::here("data/processed/forestgain_merged/forestgain_merge3000m.tif"))
-arch_attri <- rast(here::here("data/processed/arch_attri_2024-08-12.tif"))
+arch_attri <- rast(here::here("data/processed/arch_attri_2024-09-18.tif"))
 mill_change_cap <- rast(here::here("data/processed/millchangecap_interp-2.tif"))
 prec_seas <- rast(here::here("data/processed/prec_seas_3000m.tif"))
 temp_seas <- rast(here::here("data/processed/temp_seas_3000m.tif"))
@@ -34,6 +34,7 @@ for_own <- rast(here::here("data/original/Data/forest_own1/forest_own1.tif"))
 # reproject whp_rast which will be used as the reference raster
 
 whp_rast_proj <- project(whp_rast, projection)
+whp_rast_proj_focal <- focal(whp_rast_proj, w = 3, na.rm = TRUE) #fill in the NAs in the ref raster
 
 # Create a resample function
 resamp <- function(raster, ref_raster, method){
@@ -41,14 +42,14 @@ resamp <- function(raster, ref_raster, method){
   rast_resamp <- resample(rast_proj, ref_raster, method, threads = TRUE)
 }
 
-forgain_resamp <- resamp(forgain_rast, whp_rast_proj, "bilinear")
-forgain_resamp_crop <- crop(forgain_resamp, whp_rast_proj, mask = TRUE)
-arch_attri_resamp <- resamp(arch_attri, whp_rast_proj, "bilinear")
-mill_change_resamp <- resamp(mill_change_cap, whp_rast_proj, "bilinear")
-prec_seas_resamp <- resamp(prec_seas, whp_rast_proj, "bilinear")
-temp_seas_resamp <- resamp(temp_seas, whp_rast_proj, "bilinear")
-roughness_resamp <- resamp(roughness, whp_rast_proj, "bilinear")
-trav_time_resamp <- resamp(trav_time, whp_rast_proj, "bilinear")
+forgain_resamp <- resamp(forgain_rast, whp_rast_proj_focal, "bilinear")
+forgain_resamp_crop <- crop(forgain_resamp, whp_rast_proj_focal, mask = TRUE)
+arch_attri_resamp <- resamp(arch_attri, whp_rast_proj_focal, "bilinear")
+mill_change_resamp <- resamp(mill_change_cap, whp_rast_proj_focal, "bilinear")
+prec_seas_resamp <- resamp(prec_seas, whp_rast_proj_focal, "bilinear")
+temp_seas_resamp <- resamp(temp_seas, whp_rast_proj_focal, "bilinear")
+roughness_resamp <- resamp(roughness, whp_rast_proj_focal, "bilinear")
+trav_time_resamp <- resamp(trav_time, whp_rast_proj_focal, "bilinear")
 
 # select the attributes from arch_attri_resamp
 #arch_attri_select <- arch_attri %>%
