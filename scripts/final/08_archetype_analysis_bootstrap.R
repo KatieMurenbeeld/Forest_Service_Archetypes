@@ -65,9 +65,9 @@ ggplot() +
   facet_wrap(vars(variable), ncol=4)
 
 #---PMRC-Poli----
-pmrc_poli_bootvalues <- boot_group_validation(fcm_pmrc_poli, nsim = 100, maxiter = 100, 
+pmrc_poli_bootvalues <- boot_group_validation(fcm_pmrc_poli, nsim = 10, maxiter = 10, 
                                          tol = 0.0001, verbose = TRUE)
-saveRDS(pmrc_poli_bootvalues, here::here("data/processed/pmrc_poli_bootvalues.RDS"))
+#saveRDS(pmrc_poli_bootvalues, here::here("data/processed/pmrc_poli_bootvalues.RDS"))
 
 
 pmrc_poli_melted_df <- reshape2::melt(pmrc_poli_bootvalues$group_consistency)
