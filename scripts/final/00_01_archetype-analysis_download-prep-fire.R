@@ -4,6 +4,7 @@ library(terra)
 library(tigris)
 library(stringr)
 library(RCurl)
+library(gstat)
 
 # Set the timeout to 100 minutes (6000 seconds)
 options(timeout=6000)
@@ -109,4 +110,51 @@ plot(conus_whp_3km_agg)
 # save the new merged and aggregated WHP raster
 writeRaster(conus_whp_3km_agg, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_", Sys.Date(), ".tif"))
 writeRaster(conus_whp_1.5km_agg, paste0(here::here("data/processed/merged/"), "conus_whp_15km_agg_", Sys.Date(), ".tif"))
+
+## fill in missing data through IDW
+### inverse distance weighted (IDW)
+conus_whp_3km_agg <- rast(here::here("data/processed/merged/conus_whp_3km_agg_2024-08-09.tif"))
+plot(conus_whp_3km_agg)
+whp_df <- as.data.frame(conus_whp_3km_agg, xy=TRUE)
+
+mod <- gstat(id = "WHP", formula = WHP~1, locations = ~x+y, data = whp_df,
+            nmax = 7, set = list(idp = 0.5))
+
+whp_interp <- interpolate(conus_whp_3km_agg, mod, debug.level = 0, index = 1)
+writeRaster(whp_interp, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_interp_", Sys.Date(), ".tif"))
+
+whp_focal <- focal(conus_whp_3km_agg, w=3, fun=mean, na.policy="only", na.rm = TRUE)
+
+# Crop interpolated (focal and IDW) to conus states
+
+### Load the states from tigris
+states <- tigris::states(cb = TRUE)
+### Get Continental US list
+us.abbr <- unique(fips_codes$state)[1:51]
+us.name <- unique(fips_codes$state_name)[1:51]
+us.fips <- unique(fips_codes$state_code)[1:51]
+
+us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
+colnames(us.states) <- c("state", "STATENAME", "FIPS")
+us.states$state <- as.character(us.states$state)
+us.states$STATENAME <- as.character(us.states$STATENAME)
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI",] #only CONUS
+
+### Filter tigris states for conus states and set crs to crs of raster
+conus_states <- states %>%
+  filter(STUSPS %in% continental.states$state) %>%
+  dplyr::select(STUSPS, GEOID, geometry) %>%
+  st_transform(., crs = crs(conus_whp_3km_agg))
+
+plot(conus_states$geometry)
+plot(crop(whp_focal, conus_states))
+plot(crop(whp_interp, conus_states, mask = TRUE))
+
+whp_focal_crop <- crop(whp_focal, conus_states)
+whp_interp_crop <- crop(whp_interp, conus_states, mask = TRUE)
+
+writeRaster(whp_interp_crop, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_interp_crop_", Sys.Date(), ".tif"))
+writeRaster(whp_focal_crop, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_focal_crop_", Sys.Date(), ".tif"))
+
+
 
