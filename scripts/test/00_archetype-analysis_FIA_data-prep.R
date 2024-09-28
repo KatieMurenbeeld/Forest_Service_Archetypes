@@ -46,10 +46,10 @@ us.states <- as.data.frame(cbind(us.abbr, us.name, us.fips))
 colnames(us.states) <- c("state", "STATENAME", "FIPS")
 us.states$state <- as.character(us.states$state)
 us.states$STATENAME <- as.character(us.states$STATENAME)
-continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI" & us.states$state != "DC",] #only CONUS
+continental.states <- us.states[us.states$state != "AK" & us.states$state != "HI",] #only CONUS
 
 counties <- counties %>%
-  filter(STATEFP %in% us.states$FIPS) %>%
+  filter(STATEFP %in% continental.states$FIPS) %>%
   dplyr::select(GEOID, COUNTYFP, STATEFP, geometry)
 
 ## Download FIA COND table for all states
@@ -103,7 +103,7 @@ conus_prod_grp <- conus_prod %>%
             mean_prod = mean(as.numeric(siteprod), na.rm = TRUE))
 
 # 5. Join to the county geometries and make it an sf
-conus_prod_sf <- st_as_sf(left_join(conus_prod_grp, counties, by = "GEOID"))
+conus_prod_sf <- st_as_sf(left_join(counties, conus_prod_grp, by = "GEOID"))
 
 # 6. Check and fix validity
 all(st_is_valid(conus_prod_sf))
@@ -123,21 +123,16 @@ conus_prod_fill_sf <- conus_prod_fill_sf %>%
                                  apply(index, 1, function(i){mean(.$mean_prod_fill[i], na.rm = TRUE)}),
                                  mean_prod_fill))
 
-
+which(is.na(conus_prod_fill_sf$mean_prod_fill))
 any(st_is_empty(conus_prod_fill_sf))
-
-conus_age_prod_sf_noempty <- conus_prod_fill_sf[!st_is_empty(conus_prod_fill_sf),]
-any(st_is_empty(conus_age_prod_sf_noempty))
-any(is.na(st_is_valid(conus_age_prod_sf_noempty)))
-#any(na.omit(st_is_valid(conus_age_prod_sf)) == FALSE)
-st_is_longlat(conus_age_prod_sf_noempty)
+st_is_longlat(conus_prod_fill_sf)
 
 ## Double check plots
 ggplot() +
-  geom_sf(data = conus_age_prod_sf_noempty, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
+  geom_sf(data = conus_prod_fill_sf, mapping = aes(color = mean_prod_fill, fill = mean_prod_fill))
 
 # 7. Save the validated shapefile
-write_sf(obj = conus_age_prod_sf_noempty, dsn = paste0(here::here("data/processed/"), "conus_prod_fill_fia_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
+write_sf(obj = conus_prod_fill_sf, dsn = paste0(here::here("data/processed/"), "conus_prod_fill_fia_", Sys.Date(), ".shp"), overwrite = TRUE, append = FALSE)
 print("new shapefile written")
 
 
