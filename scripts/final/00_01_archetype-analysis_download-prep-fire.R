@@ -156,5 +156,5 @@ whp_interp_crop <- crop(whp_interp, conus_states, mask = TRUE)
 writeRaster(whp_interp_crop, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_interp_crop_", Sys.Date(), ".tif"))
 writeRaster(whp_focal_crop, paste0(here::here("data/processed/merged/"), "conus_whp_3km_agg_focal_crop_", Sys.Date(), ".tif"))
 
-
-
+rast_check <- rast(here::here("data/processed/merged/conus_whp_3km_agg_interp_crop_2024-09-27.tif"))
+plot(rast_check)
